@@ -7,31 +7,8 @@ pudu-graph {
   --pudu-graph-text-color: #333;
 }
 
-.pg-container {
-  background: var(--pudu-graph-background-color, #f9f9f9);
-  border-radius: 4px;
-  border: 1px solid var(--pudu-graph-border-color, #ddd);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  color: var(--pudu-graph-text-color, #333);
-
-  .pg-header {
-    font-size: 1.5em;
-    margin-bottom: 10px;
-    color: var(--pudu-graph-color, #333);
-    border: 1px solid var(--pudu-graph-border-color, #ddd);
-
-    .pg-header-tabs-container {
-    }
-  }
-}
-
 pudu-graph {
   border: 1px solid green;
-
-  .pg-container {
-    border: 1px solid blue !important;
-  }
 
   &-tabs-container {
     border: 1px solid red;
@@ -50,4 +27,21 @@ pudu-graph {
       color: var(--pudu-graph-text-color, #333);
     }
   }
+}
+
+.pg-container {
+  --sidebar-width: 250px;
+  --header-height: 50px;
+
+  --item-width: 40px;
+  --item-height: 40px;
+
+  --day-width: 30px;
+
+  //--grid-background-color: #f0f0f0;
+  //--grid-border-color: #ccc;
+
+  --internal-width: 7000px;
+  --internal-height: 1000px;
+
 }

@@ -1,13 +1,13 @@
-import { LitElement, html, unsafeCSS} from "lit-element";
+import { LitElement, html, unsafeCSS } from "lit";
 import { customElement } from "lit/decorators.js";
 import { property } from "lit/decorators.js";
-import type { PuduGraphTabConfig } from "./src/types";
+import type { PuduGraphTabConfig } from "../types";
 
 import cssStyles from "./pudu-graph-tab.css?inline";
 
 @customElement("pudu-graph-tab")
 export class PuduGraphTab extends LitElement {
-  static styles = [ unsafeCSS(cssStyles) ]
+  static styles = [unsafeCSS(cssStyles)];
 
   @property({ type: Object })
   tab: PuduGraphTabConfig;

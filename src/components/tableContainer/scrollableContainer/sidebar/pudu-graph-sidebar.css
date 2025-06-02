@@ -1,0 +1,11 @@
+/* sidebar */
+:host {
+  display: block;
+  position: sticky;
+  left: 0;
+  width: var(--sidebar-width);
+  height: var(--internal-height, 100%);
+  z-index: 20;
+  overflow: visible;
+  background-color: blue;
+}

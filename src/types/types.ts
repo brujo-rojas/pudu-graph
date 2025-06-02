@@ -1,6 +1,6 @@
 export interface PuduGraphConfig {
   data: rowData[];
-  options?: { [key: string]: any };
+  options: PuduGraphOptions;
 }
 
 export interface PuduGraphOptions {

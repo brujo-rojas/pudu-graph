@@ -1,0 +1,10 @@
+/* Scrollable Container*/
+:host {
+  display: block;
+  height: 400px; /* Adjust height as needed */
+  width: 100%;
+  overflow: scroll;
+  position: relative;
+  background-color: gray;
+  will-change: scroll-position;
+}
