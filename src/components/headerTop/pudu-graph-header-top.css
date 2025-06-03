@@ -9,9 +9,11 @@
 
 .pg-tabs-container {
   display: flex;
-  flex: 0 1 auto;
-  overflow-x: auto;
   flex-direction: row;
+  align-items: center;
+  
+  padding:0.25rem 0.25rem 0.25rem 0.5rem;
+  gap: 0.25rem;
 }
 
 .pg-header-top-left {

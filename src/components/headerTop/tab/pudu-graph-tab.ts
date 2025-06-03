@@ -12,15 +12,20 @@ export class PuduGraphTab extends LitElement {
   @property({ type: Object })
   tab: PuduGraphTabConfig;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, reflect: true })
   active = false;
+
+  updated(changedProps: Map<string, unknown>) {
+    super.updated?.(changedProps);
+    if (changedProps.has("active")) {
+      this.classList.toggle("active", this.active);
+    }
+  }
 
   render() {
     return html`
       <div>
-        <slot>
-          <h3>${this.tab.title}</h3>
-        </slot>
+        <span>${this.tab.title}</span>
       </div>
     `;
   }

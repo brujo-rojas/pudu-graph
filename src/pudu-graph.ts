@@ -9,6 +9,7 @@ import scssStyles from "./styles/styles.scss?inline";
 // Importaciones de componentes
 import "./components/headerTop/pudu-graph-header-top";
 import "./components/tableContainer/pudu-graph-table-container";
+import "./components/debug/pudu-graph-debug";
 
 // Importaciones de tipos
 import type { PuduGraphConfig } from "./types";
@@ -29,7 +30,7 @@ export class PuduGraph extends LitElement {
   private config: PuduGraphConfig | null = null;
 
   @state()
-  private testVar: string = "test";
+  public author: string = "projas";
 
   public initialize(newConfig: PuduGraphConfig) {
     configStore.set({ ...newConfig });
@@ -69,14 +70,6 @@ export class PuduGraph extends LitElement {
     console.log("PuduGraph updated", changedProperties);
   }
 
-  private _onClick() {
-    console.log("PuduGraph clicked");
-  }
-
-  private _onMouseOver() {
-    console.log("PuduGraph mouse over");
-  }
-
   // debounce
   private _debounceTimeout: any = null;
 
@@ -91,11 +84,7 @@ export class PuduGraph extends LitElement {
 
   render() {
     return html`
-      <div
-        class="pg-container"
-        @click=${this._onClick}
-        @mouseover=${this._onMouseOver}
-      >
+      <div class="pg-container">
         <pudu-graph-header-top .loading=${this.loading}>
           <slot name="headerTopLeft" slot="headerTopLeft"> </slot>
           <slot name="headerTopCenter" slot="headerTopCenter"> </slot>
@@ -108,6 +97,7 @@ export class PuduGraph extends LitElement {
 
         <slot> </slot>
 
+        <pudu-graph-debug></pudu-graph-debug>
       </div>
     `;
   }

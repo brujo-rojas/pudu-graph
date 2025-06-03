@@ -1,6 +1,16 @@
 /* Tab */
 :host {
-  display: flex;
-  flex: 0 0 auto;
-  border: 1px solid var(--pg-graph-tab-border-color, blue);
+  display: block;
+  border: 1px solid var(--tab-border-color, rgb(0, 255, 0));
+  border-radius: 3px;
+  padding: 0.25rem 1rem;
+}
+
+:host(:hover){
+  background-color: red;
+}
+
+:host([active]){
+  background-color: var(--tab-border-color, rgb(5, 5, 90)) !important;
+  color: white !important;
 }

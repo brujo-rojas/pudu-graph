@@ -1,13 +1,10 @@
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement } from "lit/decorators.js";
-import cssStyles from "./pudu-graph-floatbox.css?inline";
+import { tabStore } from "../../state/tab-store";
+import { configStore } from "../../state/config-store";
 
-import { tabStore } from "../../../../../../state/tab-store";
-import { configStore } from "../../../../../../state/config-store";
-
-@customElement("pudu-graph-floatbox")
-export class PuduGraphFloatbox extends LitElement {
-  static styles = [unsafeCSS(cssStyles)];
+@customElement("pudu-graph-debug")
+export class PuduGraphDebug extends LitElement {
 
   private unsubscribeConfig?: () => void;
   private unsubscribeTabSelected?: () => void;
@@ -27,12 +24,15 @@ export class PuduGraphFloatbox extends LitElement {
   }
 
   render() {
-    return html`<div class="pudu-graph-floatbox">${tabStore.value?.id}</div>`;
+    return html`<div>
+      <pre> ${JSON.stringify(tabStore.value, null, 2)}</pre>
+      <pre> ${JSON.stringify(configStore.value, null, 2)}</pre>
+    </div> `;
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    "pudu-graph-floatbox": PuduGraphFloatbox;
+    "pudu-graph-debug": PuduGraphDebug;
   }
 }

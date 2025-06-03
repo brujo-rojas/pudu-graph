@@ -1,20 +1,22 @@
+import type { PuduGraphTabConfig } from "../types";
+
 type Listener = () => void;
 
-let selectedTabId = 0;
+let selectedTab: PuduGraphTabConfig | null = null;
 const listeners = new Set<Listener>();
 
 export const tabStore = {
   get value() {
-    return selectedTabId;
+    return selectedTab;
   },
-  set(id: number) {
-    if (selectedTabId !==id) {
-      selectedTabId =id;
+  set(tabConfig: PuduGraphTabConfig) {
+    if (selectedTab !== tabConfig) {
+      selectedTab = tabConfig;
       listeners.forEach((fn) => fn());
     }
   },
   subscribe(fn: Listener) {
     listeners.add(fn);
     return () => listeners.delete(fn); // return unsubscribe function
-  }
+  },
 };

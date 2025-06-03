@@ -7,6 +7,8 @@ import { configStore } from "../../state/config-store";
 import cssStyles from "./pudu-graph-header-top.css?inline";
 
 import "./tab/pudu-graph-tab";
+import renderSlotOrDefault from "../../utils/renderSlotOrDefault";
+import { tabStore } from "../../state/tab-store";
 
 @customElement("pudu-graph-header-top")
 export class PuduGraphHeaderTop extends LitElement {
@@ -16,28 +18,59 @@ export class PuduGraphHeaderTop extends LitElement {
   loading = false;
 
   private unsubscribeConfig?: () => void;
+  private unsubscribeTabSelected?: () => void;
 
   private config: PuduGraphConfig | null = null;
+  private tabs: PuduGraphTabConfig[] = [];
+  private tabSelected: PuduGraphTabConfig | null = null;
 
   connectedCallback() {
     super.connectedCallback();
     this.unsubscribeConfig = configStore.subscribe(() => this.onUpdateConfig());
-  }
-
-  onUpdateConfig() {
-    this.config = configStore.value;
-    console.log("PuduGraphHeaderTop connected with config");
-    this.requestUpdate();
+    this.unsubscribeTabSelected = tabStore.subscribe(() => this.onUpdateTabSelected());
   }
 
   disconnectedCallback() {
     this.unsubscribeConfig?.();
+    this.unsubscribeTabSelected?.();
     super.disconnectedCallback();
   }
 
+  onUpdateConfig() {
+    this.config = configStore.value;
+    this.tabs = this.config?.options?.tabs || [];
+    this.requestUpdate();
+  }
+  onUpdateTabSelected() {
+    this.tabSelected = tabStore.value;
+    this.requestUpdate();
+  }
+
+
   _handleTabClick(event: MouseEvent, tabConfig: PuduGraphTabConfig) {
+    tabStore.set(tabConfig);
+
     event.preventDefault();
     event.stopPropagation();
+  }
+
+  renderTabs() {
+    if (
+      Array.isArray(this.config?.options?.tabs) &&
+      this.tabs.length
+    ) {
+      return this.config.options.tabs.map(
+        (tabConfig) => html`
+          <pudu-graph-tab
+            .tab=${tabConfig}
+            .active=${tabConfig === this.tabSelected}
+            @click=${(e: MouseEvent) => this._handleTabClick(e, tabConfig)}
+          ></pudu-graph-tab>
+        `
+      );
+    } else {
+      return "";
+    }
   }
 
   render() {
@@ -46,63 +79,28 @@ export class PuduGraphHeaderTop extends LitElement {
 
       <div class="pg-header-top-left">
         <div class="pg-tabs-container">
-          ${this.config &&
-          this.config.options &&
-          Array.isArray(this.config.options.tabs) &&
-          this.config.options.tabs.length
-            ? (this.config.options.tabs as PuduGraphTabConfig[]).map(
-                (tabConfig: PuduGraphTabConfig) => html`
-                  <pudu-graph-tab
-                    .tab=${tabConfig}
-                    @click=${(e: MouseEvent) =>
-                      this._handleTabClick(e, tabConfig)}
-                  ></pudu-graph-tab>
-                `
-              )
-            : ""}
-          <slot name="headerTopLeft"> </slot>
+          ${this.renderTabs()}
+          <slot name="headerTopLeft"></slot>
         </div>
       </div>
 
       <div class="pg-header-top-center">
-        ${this._renderSlotOrDefault(
+        ${renderSlotOrDefault(
+          this.renderRoot as Element | ShadowRoot,
           "headerTopCenter",
-          html`contenido de slot original`
+          html`contenido de slot original`,
+          this.requestUpdate.bind(this)
         )}
       </div>
       <div class="pg-header-top-right">
-        <slot name="headerTopRight"> </slot>
+        ${renderSlotOrDefault(
+          this.renderRoot as Element | ShadowRoot,
+          "headerTopRight",
+          html`contenido de slot original`,
+          this.requestUpdate.bind(this)
+        )}
       </div>
     `;
-  }
-
-  private _renderSlotOrDefault(slotName: string, fallback: unknown) {
-    return html`
-      <slot
-        name="${slotName}"
-        @slotchange=${(e: Event) => this.requestUpdate()}
-      ></slot>
-      <span style="display:none;" id="${slotName}-fallback">${fallback}</span>
-      ${this._isSlotEmpty(slotName) ? html`<span>${fallback}</span>` : null}
-    `;
-  }
-
-  private _isSlotEmpty(slotName: string): boolean {
-    const slot = this.renderRoot?.querySelector(`slot[name='${slotName}']`);
-    if (!slot) return true;
-    const assigned = (slot as HTMLSlotElement).assignedNodes({ flatten: true });
-    return (
-      assigned.length === 0 ||
-      assigned.every((n) => {
-        if (n.nodeType === Node.ELEMENT_NODE) {
-          return !(n as HTMLElement).innerHTML.trim();
-        }
-        if (n.nodeType === Node.TEXT_NODE) {
-          return !n.textContent?.trim();
-        }
-        return true;
-      })
-    );
   }
 }
 

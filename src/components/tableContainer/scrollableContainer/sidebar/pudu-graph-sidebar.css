@@ -7,5 +7,5 @@
   height: var(--internal-height, 100%);
   z-index: 20;
   overflow: visible;
-  background-color: blue;
+  background-color: rgb(7, 7, 126);
 }
