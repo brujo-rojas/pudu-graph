@@ -1,47 +1,21 @@
 @use "sass:color";
 
-//variables css
-pudu-graph {
-  --pudu-graph-background-color: red;
-  --pudu-graph-border-color: #ddd;
-  --pudu-graph-text-color: #333;
-}
-
-pudu-graph {
-  border: 1px solid green;
-
-  &-tabs-container {
-    border: 1px solid red;
-    pudu-graph-tab {
-      color: red;
-    }
-  }
-
-  &-tab {
-    padding: 10px;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-
-    &.active {
-      border-bottom-color: var(--pudu-graph-border-color, #ddd);
-      color: var(--pudu-graph-text-color, #333);
-    }
-  }
-}
-
 .pg-container {
-  --sidebar-width: 250px;
-  --header-height: 50px;
+  --pg-sidebar-width: 250px;
+  --pg-header-height: 50px;
 
-  --item-width: 40px;
-  --item-height: 40px;
+  --pg-item-width: 40px;
+  --pg-item-height: 40px;
 
-  --day-width: 30px;
+  --pg-day-width: 30px;
 
-  //--grid-background-color: #f0f0f0;
-  //--grid-border-color: #ccc;
+  //--pg-grid-background-color: #f0f0f0;
+  //--pg-grid-border-color: #ccc;
 
-  --internal-width: 7000px;
-  --internal-height: 1000px;
+  --pg-internal-width: 7000px;
+  --pg-internal-height: 1000px;
 
+  --pg-header-top-border-color: #ccc;
+  --pg-header-background-color: #f8f8f8;
+  --pg-header-button-color: #007bff;
 }

@@ -1,0 +1,11 @@
+/* sidebar */
+:host {
+  display: block;
+  position: sticky;
+  left: 0;
+  width: var(--pg-sidebar-width);
+  height: var(--pg-internal-height, 100%);
+  z-index: 20;
+  overflow: visible;
+  background-color: rgb(7, 7, 126);
+}

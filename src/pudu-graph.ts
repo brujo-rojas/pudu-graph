@@ -7,9 +7,9 @@ import { connect } from "pwa-helpers";
 import scssStyles from "./styles/styles.scss?inline";
 
 // Importaciones de componentes
-import "./components/headerTop/pudu-graph-header-top";
-import "./components/tableContainer/pudu-graph-table-container";
-import "./components/debug/pudu-graph-debug";
+import "./elements/headerTop/pg-header-top";
+import "./elements/tableContainer/pg-table-container";
+import "./elements/debug/pg-debug";
 
 // Importaciones de tipos y estado
 import type { PuduGraphConfig } from "./types";
@@ -25,7 +25,6 @@ export class PuduGraph extends connect(store)(LitElement) {
   private data: any[] = [];
   private uiState: any = {};
 
-
   @property({ type: Boolean })
   loading = false;
 
@@ -33,14 +32,14 @@ export class PuduGraph extends connect(store)(LitElement) {
   public author: string = "projas";
 
   stateChanged(state: RootState): void {
-    console.log("stateChanged", state)
+    console.log("stateChanged", state);
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;
   }
 
   public initialize(newConfig: PuduGraphConfig) {
-    console.log("initialize", newConfig)
+    console.log("initialize", newConfig);
     store.dispatch(setConfig(newConfig));
     this.debouncedRequestUpdate();
   }
@@ -63,7 +62,9 @@ export class PuduGraph extends connect(store)(LitElement) {
     console.log("PuduGraph first updated");
   }
 
-  updated(changedProperties: PropertyValueMap<any> | Map<PropertyKey, unknown>) {
+  updated(
+    changedProperties: PropertyValueMap<any> | Map<PropertyKey, unknown>
+  ) {
     super.updated(changedProperties);
     console.log("PuduGraph updated", changedProperties);
   }
@@ -83,19 +84,19 @@ export class PuduGraph extends connect(store)(LitElement) {
   render() {
     return html`
       <div class="pg-container">
-        <pudu-graph-header-top .loading=${this.loading}>
+        <pg-header-top .loading=${this.loading}>
           <slot name="headerTopLeft" slot="headerTopLeft"></slot>
           <slot name="headerTopCenter" slot="headerTopCenter"></slot>
           <slot name="headerTopRight" slot="headerTopRight"></slot>
-        </pudu-graph-header-top>
+        </pg-header-top>
 
-        <pudu-graph-table-container></pudu-graph-table-container>
+        <pg-table-container></pg-table-container>
 
         ${this.loading ? html`<p>Loading...</p>` : ""}
 
         <slot></slot>
 
-        <pudu-graph-debug></pudu-graph-debug>
+        <pg-debug></pg-debug>
       </div>
     `;
   }

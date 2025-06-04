@@ -1,5 +1,0 @@
-/* header timeline */
-:host{
-    display: block;
-    padding-left: var(--sidebar-width, 300px);
-}

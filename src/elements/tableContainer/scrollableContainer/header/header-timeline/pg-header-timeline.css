@@ -1,0 +1,5 @@
+/* header timeline */
+:host{
+    display: block;
+    padding-left: var(--pg-sidebar-width, 300px);
+}

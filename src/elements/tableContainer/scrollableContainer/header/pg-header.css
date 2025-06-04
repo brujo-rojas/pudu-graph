@@ -1,0 +1,13 @@
+/* header */
+:host {
+  height: var(--pg-header-height);
+  width: calc(var(--pg-internal-width) + var(--pg-sidebar-width));
+  background-color: var(--pg-grid-background-color, yellow);
+  border-bottom: 1px solid var(--pg-grid-border-color);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+
+  display: flex;
+  flex-direction: column;
+}
