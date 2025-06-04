@@ -9,7 +9,7 @@ export class PuduGraphHeaderTimeline extends LitElement {
   render() {
     return html`
       <div class="pg-header-timeline">
-        <slot></slot>
+      ${Array.from({ length: 50 }, (_, i) => html`<div class="cell-header"></div>`)}
       </div>
     `;
   }

@@ -85,7 +85,10 @@ export class PuduGraph extends connect(store)(LitElement) {
 
   render() {
     return html`
-      <div class="pg-container">
+      <div
+        class="pg-container"
+        @wheel=${this._onContainerWheel}
+      >
         <pg-header-top .loading=${this.loading}>
           <slot name="headerTopLeft" slot="headerTopLeft"></slot>
           <slot name="headerTopCenter" slot="headerTopCenter"></slot>
@@ -102,6 +105,19 @@ export class PuduGraph extends connect(store)(LitElement) {
       </div>
     `;
   }
+
+  private _onContainerWheel(e: WheelEvent) {
+    if (e.ctrlKey) {
+      e.preventDefault();
+      const target = e.currentTarget as HTMLElement;
+      // Calcula el nuevo valor de zoom-scroll-value
+      const prev = parseFloat(target.style.getPropertyValue('--pg-zoom-scroll-value') || '1');
+      // Ajusta el valor según la dirección del scroll
+      let next = prev + (e.deltaY > 0 ? -0.1 : 0.1);
+      next = Math.max(0.1, Math.min(next, 5)); // Limita el zoom entre 0.1 y 5
+      target.style.setProperty('--pg-zoom-scroll-value', `${next}`);
+    }
+  }
 }
 
 declare global {
@@ -109,3 +125,4 @@ declare global {
     "pudu-graph": PuduGraph;
   }
 }
+

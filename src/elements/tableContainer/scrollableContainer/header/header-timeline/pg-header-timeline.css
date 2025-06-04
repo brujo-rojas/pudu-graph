@@ -3,3 +3,17 @@
     display: block;
     padding-left: var(--pg-sidebar-width, 300px);
 }
+.pg-header-timeline{
+    display: flex;
+    flex-direction: row;
+}
+
+.pg-header-timeline .cell-header {
+    width: calc(var(--pg-cell-width,30px) - 1px);
+    height: var(--pg-cell-header-height, 20px);
+    border-right: 1px solid var(--pg-header-border-color, #ff0202);
+    color: var(--pg-header-text-color, black);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
