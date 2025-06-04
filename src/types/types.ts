@@ -1,5 +1,5 @@
 export interface PuduGraphConfig {
-  data: rowData[];
+  data: RowData[];
   options: PuduGraphOptions;
 }
 
@@ -38,10 +38,11 @@ export interface PuduGraphTheme {
   borderColor?: string; // Color del borde del tema
 }
 
-export interface rowData {
-  title: string; // Título de la fila
-  dayData: itemData[]; // Datos de días asociados a la fila
-  props?: { [key: string]: any }; // Propiedades adicionales de la fila
+export interface RowData {
+  id: number | string; // Identificador único de la fila
+  label: string; // Título de la fila
+  tooltip?: string; // Tooltip de la fila
+  values: Object; // Valores asociados a la fila
 }
 
 export interface itemData {
@@ -49,7 +50,6 @@ export interface itemData {
   unix: number; // Timestamp en milisegundos
   value: number; // Valor asociado a la fecha
 }
-
 
 export interface PuduGraphUIState {
   selectedTab?: PuduGraphTabConfig | null;

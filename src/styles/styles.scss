@@ -7,7 +7,7 @@
   --pg-item-width: 40px;
   --pg-item-height: 40px;
 
-  --pg-day-width: 30px;
+  --pg-cell-width: 30px;
 
   //--pg-grid-background-color: #f0f0f0;
   //--pg-grid-border-color: #ccc;
@@ -15,7 +15,16 @@
   --pg-internal-width: 7000px;
   --pg-internal-height: 1000px;
 
+  --pg-header-top-background-color: #f8f8f8;
   --pg-header-top-border-color: #ccc;
-  --pg-header-background-color: #f8f8f8;
-  --pg-header-button-color: #007bff;
+  --pg-header-top-height: 30px;
+  --pg-header-top-button-color: #007bff;
+
+
+  --pg-header-background-color: #969696;
+  --pg-header-border-color: #ff0000;
+
+  --pg-sidebar-background-color: #969696;
+  --pg-sidebar-border-color: #ff0000;
+  --pg-sidebar-item-background-color: #e0e0e0;
 }

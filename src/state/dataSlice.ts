@@ -1,10 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
-
-export interface RowData {
-  id: string;
-  [key: string]: any;
-}
+import type { RowData } from "../types";
 
 // DataState ahora es simplemente un array de RowData
 export type DataState = RowData[];

@@ -49,8 +49,11 @@
   padding: 0.25rem;
   border-radius: 3px;
   cursor: pointer;
-  background-color: var(--pg-header-button-background-color, rgba(0, 0, 0, 0.1));
-  border: 1px solid var(--pg-header-button-border-color, rgba(0, 0, 0, 0.2));
+  background-color: var(
+    --pg-header-top-button-background-color,
+    rgba(0, 0, 0, 0.1)
+  );
+  border: 1px solid var(--pg-header-top-button-border-color, rgba(0, 0, 0, 0.2));
   color: var(--pg-header-button-color, black);
 }
 

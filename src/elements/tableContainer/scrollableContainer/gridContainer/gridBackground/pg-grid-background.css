@@ -7,7 +7,7 @@
   top: 0;
   left: 0;
 
-  background-size: var(--pg-day-width) var(--pg-item-height);
+  background-size: var(--pg-cell-width) var(--pg-item-height);
   background-image: linear-gradient(
       90deg,
       rgba(80, 80, 80, 0.3) 1px,

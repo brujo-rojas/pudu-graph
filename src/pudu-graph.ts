@@ -16,6 +16,7 @@ import type { PuduGraphConfig } from "./types";
 import { store } from "./state/store";
 import type { RootState } from "./state/store";
 import { setConfig } from "./state/configSlice";
+import { setRows } from "./state/dataSlice";
 
 @customElement("pudu-graph")
 export class PuduGraph extends connect(store)(LitElement) {
@@ -41,6 +42,7 @@ export class PuduGraph extends connect(store)(LitElement) {
   public initialize(newConfig: PuduGraphConfig) {
     console.log("initialize", newConfig);
     store.dispatch(setConfig(newConfig));
+    store.dispatch(setRows(newConfig.data));
     this.debouncedRequestUpdate();
   }
 

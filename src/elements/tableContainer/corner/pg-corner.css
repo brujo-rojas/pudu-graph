@@ -2,7 +2,7 @@
 :host {
   width: var(--pg-sidebar-width);
   height: var(--pg-header-height);
-  background-color: rgb(119, 34, 34);
+  background-color: var(--pg-header-background-color, #f0f0f0);
   z-index: 40;
   position: absolute;
   top: 0;
