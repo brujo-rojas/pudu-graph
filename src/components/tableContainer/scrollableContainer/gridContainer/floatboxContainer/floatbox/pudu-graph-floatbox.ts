@@ -1,33 +1,30 @@
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement } from "lit/decorators.js";
 import cssStyles from "./pudu-graph-floatbox.css?inline";
-
-import { tabStore } from "../../../../../../state/tab-store";
-import { configStore } from "../../../../../../state/config-store";
+import { connect } from "pwa-helpers";
+import { store } from "../../../../../../state/store";
+import type { RootState } from "../../../../../../state/store";
+import type { PuduGraphConfig, PuduGraphUIState } from "../../../../../../types/types";
 
 @customElement("pudu-graph-floatbox")
-export class PuduGraphFloatbox extends LitElement {
+export class PuduGraphFloatbox extends connect(store)(LitElement) {
   static styles = [unsafeCSS(cssStyles)];
 
-  private unsubscribeConfig?: () => void;
-  private unsubscribeTabSelected?: () => void;
+  private config: PuduGraphConfig | null = null;
+  private data: any[] = [];
+  private uiState: PuduGraphUIState | null = null;
 
-  connectedCallback() {
-    super.connectedCallback();
-    this.unsubscribeConfig = configStore.subscribe(() => this.requestUpdate());
-    this.unsubscribeTabSelected = tabStore.subscribe(() =>
-      this.requestUpdate()
-    );
-  }
-
-  disconnectedCallback() {
-    this.unsubscribeConfig?.();
-    this.unsubscribeTabSelected?.();
-    super.disconnectedCallback();
+  stateChanged(state: RootState): void {
+    this.config = state.config;
+    this.data = state.data;
+    this.uiState = state.uiState;
+    this.requestUpdate();
   }
 
   render() {
-    return html`<div class="pudu-graph-floatbox">${tabStore.value?.id}</div>`;
+    return html`<div class="pudu-graph-floatbox">
+                  ${this.uiState?.selectedTab?.id}
+                </div>`;
   }
 }
 

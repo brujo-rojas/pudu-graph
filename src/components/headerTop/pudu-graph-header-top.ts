@@ -1,69 +1,55 @@
 import { LitElement, html } from "lit-element";
 import { customElement, property } from "lit/decorators.js";
 import { unsafeCSS } from "lit";
-import type { PuduGraphConfig, PuduGraphTabConfig } from "../../types";
-import { configStore } from "../../state/config-store";
+import type {
+  PuduGraphConfig,
+  PuduGraphTabConfig,
+  PuduGraphUIState,
+} from "../../types";
+
+import { connect } from "pwa-helpers";
 
 import cssStyles from "./pudu-graph-header-top.css?inline";
 
+import { store, type RootState } from "../../state/store";
+import { setSelectedTab } from "../../state/uiStateSlice";
+
 import "./tab/pudu-graph-tab";
 import renderSlotOrDefault from "../../utils/renderSlotOrDefault";
-import { tabStore } from "../../state/tab-store";
 
 @customElement("pudu-graph-header-top")
-export class PuduGraphHeaderTop extends LitElement {
+export class PuduGraphHeaderTop extends connect(store)(LitElement) {
   static styles = [unsafeCSS(cssStyles)];
 
   @property({ type: Boolean })
   loading = false;
 
-  private unsubscribeConfig?: () => void;
-  private unsubscribeTabSelected?: () => void;
-
   private config: PuduGraphConfig | null = null;
+  private uiState: PuduGraphUIState | null = null;
   private tabs: PuduGraphTabConfig[] = [];
-  private tabSelected: PuduGraphTabConfig | null = null;
+  private selectedTab: PuduGraphTabConfig | null = null;
 
-  connectedCallback() {
-    super.connectedCallback();
-    this.unsubscribeConfig = configStore.subscribe(() => this.onUpdateConfig());
-    this.unsubscribeTabSelected = tabStore.subscribe(() => this.onUpdateTabSelected());
-  }
-
-  disconnectedCallback() {
-    this.unsubscribeConfig?.();
-    this.unsubscribeTabSelected?.();
-    super.disconnectedCallback();
-  }
-
-  onUpdateConfig() {
-    this.config = configStore.value;
+  stateChanged(state: RootState): void {
+    this.config = state.config;
     this.tabs = this.config?.options?.tabs || [];
-    this.requestUpdate();
+    this.uiState = state.uiState;
+    this.selectedTab = this.uiState?.selectedTab ?? null;
   }
-  onUpdateTabSelected() {
-    this.tabSelected = tabStore.value;
-    this.requestUpdate();
-  }
-
 
   _handleTabClick(event: MouseEvent, tabConfig: PuduGraphTabConfig) {
-    tabStore.set(tabConfig);
-
     event.preventDefault();
     event.stopPropagation();
+    store.dispatch(setSelectedTab(tabConfig));
+    this.requestUpdate();
   }
 
   renderTabs() {
-    if (
-      Array.isArray(this.config?.options?.tabs) &&
-      this.tabs.length
-    ) {
+    if (Array.isArray(this.config?.options?.tabs) && this.tabs.length) {
       return this.config.options.tabs.map(
         (tabConfig) => html`
           <pudu-graph-tab
             .tab=${tabConfig}
-            .active=${tabConfig === this.tabSelected}
+            .active=${tabConfig === this.selectedTab}
             @click=${(e: MouseEvent) => this._handleTabClick(e, tabConfig)}
           ></pudu-graph-tab>
         `
@@ -86,19 +72,19 @@ export class PuduGraphHeaderTop extends LitElement {
 
       <div class="pg-header-top-center">
         ${renderSlotOrDefault(
-          this.renderRoot as Element | ShadowRoot,
-          "headerTopCenter",
-          html`contenido de slot original`,
-          this.requestUpdate.bind(this)
-        )}
+      this.renderRoot as Element | ShadowRoot,
+      "headerTopCenter",
+      html`contenido de slot original`,
+      this.requestUpdate.bind(this)
+    )}
       </div>
       <div class="pg-header-top-right">
         ${renderSlotOrDefault(
-          this.renderRoot as Element | ShadowRoot,
-          "headerTopRight",
-          html`contenido de slot original`,
-          this.requestUpdate.bind(this)
-        )}
+      this.renderRoot as Element | ShadowRoot,
+      "headerTopRight",
+      html`contenido de slot original`,
+      this.requestUpdate.bind(this)
+    )}
       </div>
     `;
   }

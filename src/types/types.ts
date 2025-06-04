@@ -49,3 +49,12 @@ export interface itemData {
   unix: number; // Timestamp en milisegundos
   value: number; // Valor asociado a la fecha
 }
+
+
+export interface PuduGraphUIState {
+  selectedTab?: PuduGraphTabConfig | null;
+  selectedRowIds: string[];
+  scrollLeft: number;
+  scrollTop: number;
+  visibleRange: { start: number; end: number };
+}

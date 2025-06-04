@@ -1,32 +1,36 @@
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement } from "lit/decorators.js";
-import { tabStore } from "../../state/tab-store";
-import { configStore } from "../../state/config-store";
+import { connect } from "pwa-helpers";
+import { store } from "../../state/store";
+import type { PuduGraphConfig } from "../../types/types";
+import type { RootState } from "../../state/store";
+import cssStyles from "./pudu-graph-debug.css?inline";
+
 
 @customElement("pudu-graph-debug")
-export class PuduGraphDebug extends LitElement {
+export class PuduGraphDebug extends connect(store)(LitElement) {
+  static styles = [unsafeCSS(cssStyles)];
 
-  private unsubscribeConfig?: () => void;
-  private unsubscribeTabSelected?: () => void;
+  private config: PuduGraphConfig | null = null;
+  private data: any[] = [];
+  private uiState: any = {};
 
-  connectedCallback() {
-    super.connectedCallback();
-    this.unsubscribeConfig = configStore.subscribe(() => this.requestUpdate());
-    this.unsubscribeTabSelected = tabStore.subscribe(() =>
-      this.requestUpdate()
-    );
-  }
-
-  disconnectedCallback() {
-    this.unsubscribeConfig?.();
-    this.unsubscribeTabSelected?.();
-    super.disconnectedCallback();
+  stateChanged(state: RootState) {
+    this.config = state.config;
+    this.data = state.data;
+    this.uiState = state.uiState;
+    this.requestUpdate();
   }
 
   render() {
     return html`<div>
-      <pre> ${JSON.stringify(tabStore.value, null, 2)}</pre>
-      <pre> ${JSON.stringify(configStore.value, null, 2)}</pre>
+      <h2>Debug</h2>
+      <h3>UI State</h3>
+      <pre> ${JSON.stringify(this.uiState, null, 2)}</pre>
+      <h3>Config</h3>
+      <pre> ${JSON.stringify(this.config, null, 2)}</pre>
+      <h3>Data</h3>
+      <pre> ${JSON.stringify(this.data, null, 2)}</pre>
     </div> `;
   }
 }

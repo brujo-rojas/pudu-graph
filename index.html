@@ -8,7 +8,6 @@
     <script type="module" src="/src/pudu-graph.ts"></script>
   </head>
   <body>
-
     <pudu-graph loading="true">
       <div slot="headerTopLeft">headerTopLeft</div>
       <div slot="headerTopRight">headerTopRight</div>
@@ -46,8 +45,10 @@
       if (graphElement) {
         //cambiar el estado de Loading
         setTimeout(() => {
-          graphElement.setLoading(false);
-          graphElement.initialize(config);
+          if (graphElement.setLoading) {
+            graphElement.setLoading(false);
+            graphElement.initialize(config);
+          }
         }, 200);
       }
     </script>

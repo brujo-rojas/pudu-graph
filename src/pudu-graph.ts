@@ -1,7 +1,7 @@
 // Importaciones de librerías externas
-import { LitElement, html } from "lit";
+import { LitElement, html, unsafeCSS, type PropertyValueMap } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { unsafeCSS } from "lit";
+import { connect } from "pwa-helpers";
 
 // Importación de estilos
 import scssStyles from "./styles/styles.scss?inline";
@@ -11,44 +11,42 @@ import "./components/headerTop/pudu-graph-header-top";
 import "./components/tableContainer/pudu-graph-table-container";
 import "./components/debug/pudu-graph-debug";
 
-// Importaciones de tipos
+// Importaciones de tipos y estado
 import type { PuduGraphConfig } from "./types";
-import { configStore } from "./state/config-store";
+import { store } from "./state/store";
+import type { RootState } from "./state/store";
+import { setConfig } from "./state/configSlice";
 
 @customElement("pudu-graph")
-export class PuduGraph extends LitElement {
+export class PuduGraph extends connect(store)(LitElement) {
   static styles = [unsafeCSS(scssStyles)];
+
+  private config: PuduGraphConfig | null = null;
+  private data: any[] = [];
+  private uiState: any = {};
+
 
   @property({ type: Boolean })
   loading = false;
 
-  //TODO test esto, para optimizacion, tal vez hay que cambiart la logica
-  // del config como state, para que no refresque todo el plugin
-  // al cambiar, considerar usarlo como variable privada solamente
-  // y con un store, detectar cambios y replicarlos en los lugares neceasarios
-  @state()
-  private config: PuduGraphConfig | null = null;
-
   @state()
   public author: string = "projas";
 
-  public initialize(newConfig: PuduGraphConfig) {
-    configStore.set({ ...newConfig });
-    this.config = configStore.value;
-    this.debouncedRequestUpdate();
+  stateChanged(state: RootState): void {
+    console.log("stateChanged", state)
+    this.config = state.config;
+    this.data = state.data;
+    this.uiState = state.uiState;
   }
 
-  public updateConfig(partialConfig: PuduGraphConfig) {
-    configStore.set({ ...this.config, ...partialConfig });
+  public initialize(newConfig: PuduGraphConfig) {
+    console.log("initialize", newConfig)
+    store.dispatch(setConfig(newConfig));
     this.debouncedRequestUpdate();
   }
 
   public setLoading(loading: boolean) {
-    this.loading = loading; // Cambia estado de carga
-  }
-
-  public getData() {
-    return this.config?.data || [];
+    this.loading = loading;
   }
 
   connectedCallback() {
@@ -65,7 +63,7 @@ export class PuduGraph extends LitElement {
     console.log("PuduGraph first updated");
   }
 
-  updated(changedProperties) {
+  updated(changedProperties: PropertyValueMap<any> | Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
     console.log("PuduGraph updated", changedProperties);
   }
@@ -86,16 +84,16 @@ export class PuduGraph extends LitElement {
     return html`
       <div class="pg-container">
         <pudu-graph-header-top .loading=${this.loading}>
-          <slot name="headerTopLeft" slot="headerTopLeft"> </slot>
-          <slot name="headerTopCenter" slot="headerTopCenter"> </slot>
-          <slot name="headerTopRight" slot="headerTopRight"> </slot>
+          <slot name="headerTopLeft" slot="headerTopLeft"></slot>
+          <slot name="headerTopCenter" slot="headerTopCenter"></slot>
+          <slot name="headerTopRight" slot="headerTopRight"></slot>
         </pudu-graph-header-top>
 
-        <pudu-graph-table-container> </pudu-graph-table-container>
+        <pudu-graph-table-container></pudu-graph-table-container>
 
         ${this.loading ? html`<p>Loading...</p>` : ""}
 
-        <slot> </slot>
+        <slot></slot>
 
         <pudu-graph-debug></pudu-graph-debug>
       </div>
