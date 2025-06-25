@@ -1,9 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { RowData } from "../types";
+import type { PuduGraphRowData } from "../types";
 
 // DataState ahora es simplemente un array de RowData
-export type DataState = RowData[];
+export type DataState = PuduGraphRowData[];
 
 const initialState: DataState = [];
 
@@ -11,15 +11,15 @@ const dataSlice = createSlice({
   name: "data",
   initialState,
   reducers: {
-    setRows(state, action: PayloadAction<RowData[]>) {
+    setRows(state, action: PayloadAction<PuduGraphRowData[]>) {
       return action.payload;
     },
-    addRow(state, action: PayloadAction<RowData>) {
+    addRow(state, action: PayloadAction<PuduGraphRowData>) {
       state.push(action.payload);
     },
     updateRow(
       state,
-      action: PayloadAction<{ id: string; data: Partial<RowData> }>
+      action: PayloadAction<{ id: string; data: Partial<PuduGraphRowData> }>
     ) {
       const idx = state.findIndex((r) => r.id === action.payload.id);
       if (idx !== -1) {

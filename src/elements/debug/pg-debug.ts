@@ -2,7 +2,7 @@ import { LitElement, html, unsafeCSS } from "lit";
 import { customElement } from "lit/decorators.js";
 import { connect } from "pwa-helpers";
 import { store } from "../../state/store";
-import type { PuduGraphConfig } from "../../types/types";
+import type { PuduGraphConfig, PuduGraphUIState } from "../../types/types";
 import type { RootState } from "../../state/store";
 import cssStyles from "./pg-debug.css?inline";
 
@@ -13,7 +13,7 @@ export class PgDebug extends connect(store)(LitElement) {
 
   private config: PuduGraphConfig | null = null;
   private data: any[] = [];
-  private uiState: any = {};
+ private uiState: PuduGraphUIState = {};
 
   stateChanged(state: RootState) {
     this.config = state.config;

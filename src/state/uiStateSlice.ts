@@ -7,7 +7,7 @@ const initialState: PuduGraphUIState = {
   selectedRowIds: [],
   scrollLeft: 0,
   scrollTop: 0,
-  visibleRange: { start: 0, end: 0 },
+  zoomValue: 1, // Valor de zoom inicial
 };
 
 const uiStateSlice = createSlice({
@@ -24,12 +24,12 @@ const uiStateSlice = createSlice({
       state.scrollLeft = action.payload.left;
       state.scrollTop = action.payload.top;
     },
-    setVisibleRange(state, action: PayloadAction<{ start: number; end: number }>) {
-      state.visibleRange = action.payload;
+    setZoom(state, action: PayloadAction<number>) {
+      state.zoomValue = action.payload;
     },
     // Puedes agregar más reducers aquí
   },
 });
 
-export const { setSelectedTab, setSelectedRows, setScroll, setVisibleRange } = uiStateSlice.actions;
+export const { setSelectedTab, setSelectedRows, setScroll, setZoom } = uiStateSlice.actions;
 export default uiStateSlice.reducer;

@@ -12,25 +12,26 @@ import "./elements/tableContainer/pg-table-container";
 import "./elements/debug/pg-debug";
 
 // Importaciones de tipos y estado
-import type { PuduGraphConfig } from "./types";
+import type { PuduGraphConfig, PuduGraphUIState } from "./types";
 import { store } from "./state/store";
 import type { RootState } from "./state/store";
 import { setConfig } from "./state/configSlice";
 import { setRows } from "./state/dataSlice";
+import { setZoom } from "./state/uiStateSlice";
 
 @customElement("pudu-graph")
 export class PuduGraph extends connect(store)(LitElement) {
   static styles = [unsafeCSS(scssStyles)];
-
-  private config: PuduGraphConfig | null = null;
-  private data: any[] = [];
-  private uiState: any = {};
 
   @property({ type: Boolean })
   loading = false;
 
   @state()
   public author: string = "projas";
+
+  private config: PuduGraphConfig | null = null;
+  private data: any[] = [];
+  private uiState: PuduGraphUIState = {};
 
   stateChanged(state: RootState): void {
     console.log("stateChanged", state);
@@ -64,13 +65,6 @@ export class PuduGraph extends connect(store)(LitElement) {
     console.log("PuduGraph first updated");
   }
 
-  updated(
-    changedProperties: PropertyValueMap<any> | Map<PropertyKey, unknown>
-  ) {
-    super.updated(changedProperties);
-    console.log("PuduGraph updated", changedProperties);
-  }
-
   // debounce
   private _debounceTimeout: any = null;
 
@@ -85,10 +79,7 @@ export class PuduGraph extends connect(store)(LitElement) {
 
   render() {
     return html`
-      <div
-        class="pg-container"
-        @wheel=${this._onContainerWheel}
-      >
+      <div class="pg-container" @wheel=${this._onContainerWheel}>
         <pg-header-top .loading=${this.loading}>
           <slot name="headerTopLeft" slot="headerTopLeft"></slot>
           <slot name="headerTopCenter" slot="headerTopCenter"></slot>
@@ -105,18 +96,36 @@ export class PuduGraph extends connect(store)(LitElement) {
       </div>
     `;
   }
-
   private _onContainerWheel(e: WheelEvent) {
     if (e.ctrlKey) {
       e.preventDefault();
       const target = e.currentTarget as HTMLElement;
-      // Calcula el nuevo valor de zoom-scroll-value
-      const prev = parseFloat(target.style.getPropertyValue('--pg-zoom-scroll-value') || '1');
+      // Obtiene el valor actual de zoom desde el store
+      const prev = this.uiState.zoomValue ?? 1;
       // Ajusta el valor según la dirección del scroll
       let next = prev + (e.deltaY > 0 ? -0.1 : 0.1);
-      next = Math.max(0.1, Math.min(next, 5)); // Limita el zoom entre 0.1 y 5
-      target.style.setProperty('--pg-zoom-scroll-value', `${next}`);
+      next = Math.max(0.5, Math.min(next, 3)); // Limita el zoom entre 0.5 y 3
+      // Actualiza el store y la variable CSS
+      store.dispatch(setZoom(next));
+      target.style.setProperty("--pg-zoom-value", `${next}`);
     }
+  }
+
+  updated(
+    changedProperties: PropertyValueMap<any> | Map<PropertyKey, unknown>
+  ) {
+    super.updated(changedProperties);
+    // Sincroniza el valor de zoom del store con la variable CSS
+    const container = this.renderRoot.querySelector(
+      ".pg-container"
+    ) as HTMLElement;
+    if (container && this.uiState.zoomValue !== undefined) {
+      container.style.setProperty(
+        "--pg-zoom-value",
+        `${this.uiState.zoomValue}`
+      );
+    }
+    console.log("PuduGraph updated", changedProperties);
   }
 }
 
@@ -125,4 +134,3 @@ declare global {
     "pudu-graph": PuduGraph;
   }
 }
-

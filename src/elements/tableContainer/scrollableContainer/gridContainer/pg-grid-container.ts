@@ -6,7 +6,7 @@ import "./gridBackground/pg-grid-background";
 import "./mouseoverLight/pg-mouseover-light";
 import "./selectionLight/pg-selection-light";
 import "./floatDetails/pg-float-details";
-import "./floatboxContainer/pg-floabox-container";
+import "./floatboxContainer/pg-floatbox-container";
 
 @customElement("pg-grid-container")
 export class PuduGraphGridContainer extends LitElement {

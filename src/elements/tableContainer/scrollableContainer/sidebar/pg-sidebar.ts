@@ -16,7 +16,7 @@ export class PuduGraphSidebar extends connect(store)(LitElement) {
   static styles = [unsafeCSS(cssStyles)];
   private config: PuduGraphConfig | null = null;
   private data: any[] = [];
-  private uiState: any = {};
+ private uiState: PuduGraphUIState = {};
 
   stateChanged(state: RootState): void {
     console.log("stateChanged", state);

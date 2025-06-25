@@ -17,47 +17,72 @@
       const graphElement = document.querySelector("pudu-graph");
       const config = {
         data: [
-          
-        {
-          id: 1,
-          label: "N 1",
-          tooltip: "Tooltip 1",
-          values:{},
-        },
-        {
-          id: 2,
-          label: "N 2",
-          tooltip: "Tooltip 2",
-          values:{},
-        },
-        {
-          id: 3,
-          label: "N 3",
-          tooltip: "Tooltip 3",
-          values:{},
-        },
-        {
-          id: 4,
-          label: "N 4",
-          tooltip: "Tooltip 4",
-          values:{},
-        },
-        {
-          id: 5,
-          label: "N 5",
-          tooltip: "Tooltip 5",
-          values:{},
-        },
-        {
-          id: 6,
-          label: "N 6",
-          tooltip: "Tooltip 6",
-          values:{},
-        },
-      
-      ],
+          {
+            id: 1,
+            label: "N 1",
+            tooltip: "Tooltip 1",
+            values: {},
+            rowData: {
+              date: "2025-03-20",
+              unix: 1742007600,
+              value: 100,
+            },
+          },
+          {
+            id: 2,
+            label: "N 2",
+            tooltip: "Tooltip 2",
+            values: {},
+          },
+          {
+            id: 3,
+            label: "N 3",
+            tooltip: "Tooltip 3",
+            values: {},
+          },
+          {
+            id: 4,
+            label: "N 4",
+            tooltip: "Tooltip 4",
+            values: {},
+          },
+          {
+            id: 5,
+            label: "N 5",
+            tooltip: "Tooltip 5",
+            values: {},
+          },
+          {
+            id: 6,
+            label: "N 6",
+            tooltip: "Tooltip 6",
+            values: {},
+          },
+        ],
         options: {
+          startUnix: 1742007600,
+          endUnix: 1749960000,
+
           header: {},
+          sidebar:{
+            width: 500,
+            columns:[
+              {
+                id: "id",
+                label: "ID",
+                field: "id",
+                type: "text",
+                width: 50,
+              },
+              {
+                id: "ha",
+                label: "HA",
+                field: "ha",
+                type: "input",
+                width: 60,
+              },
+            ]
+          },
           tabs: [
             {
               id: 1,
