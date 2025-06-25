@@ -12,7 +12,7 @@ import "./elements/tableContainer/pg-table-container";
 import "./elements/debug/pg-debug";
 
 // Importaciones de tipos y estado
-import type { PuduGraphConfig, PuduGraphUIState } from "./types";
+import type { PGConfig, PuduGraphUIState } from "./types";
 import { store } from "./state/store";
 import type { RootState } from "./state/store";
 import { setConfig } from "./state/configSlice";
@@ -29,22 +29,45 @@ export class PuduGraph extends connect(store)(LitElement) {
   @state()
   public author: string = "projas";
 
-  private config: PuduGraphConfig | null = null;
+  private config: PGConfig | null = null;
   private data: any[] = [];
   private uiState: PuduGraphUIState = {};
+  private width: number | null = null;
 
   stateChanged(state: RootState): void {
     console.log("stateChanged", state);
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;
+    this.width = this.calculateInternalWidth(this.config);
   }
 
-  public initialize(newConfig: PuduGraphConfig) {
+  public initialize(newConfig: PGConfig) {
     console.log("initialize", newConfig);
     store.dispatch(setConfig(newConfig));
     store.dispatch(setRows(newConfig.data));
     this.debouncedRequestUpdate();
+  }
+
+  private calculateInternalWidth(config: PGConfig): number | null {
+    // Validación de fechas
+    const { startUnix, endUnix } = config.options;
+    if (typeof startUnix !== "number" || typeof endUnix !== "number") {
+      console.warn("StartUnix y endUnix deben ser números en milisegundos.");
+      return null;
+    }
+
+    // Cálculo de días totales
+    const DAY = 24 * 3600;
+    const totalDays = Math.ceil((endUnix - startUnix) / DAY) + 1;
+
+    // Ancho base por día y zoom
+    const DAY_WIDTH = 30;
+    const zoom = this.uiState.zoomValue ?? 1;
+    const totalWidth = totalDays * DAY_WIDTH * zoom;
+
+    // Suma total
+    return totalWidth;
   }
 
   public setLoading(loading: boolean) {
@@ -79,7 +102,14 @@ export class PuduGraph extends connect(store)(LitElement) {
 
   render() {
     return html`
-      <div class="pg-container" @wheel=${this._onContainerWheel}>
+      <div
+        class="pg-container"
+        @wheel=${this._onContainerWheel}
+        style="
+        --pg-zoom-value: ${this.uiState.zoomValue ?? 1};
+        --pg-internal-width: ${this.width ? `${this.width}px` : "100%"};
+        "
+      >
         <pg-header-top .loading=${this.loading}>
           <slot name="headerTopLeft" slot="headerTopLeft"></slot>
           <slot name="headerTopCenter" slot="headerTopCenter"></slot>
@@ -107,7 +137,6 @@ export class PuduGraph extends connect(store)(LitElement) {
       next = Math.max(0.5, Math.min(next, 3)); // Limita el zoom entre 0.5 y 3
       // Actualiza el store y la variable CSS
       store.dispatch(setZoom(next));
-      target.style.setProperty("--pg-zoom-value", `${next}`);
     }
   }
 

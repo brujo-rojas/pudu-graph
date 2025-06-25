@@ -7,14 +7,14 @@ import { connect } from "pwa-helpers";
 import { store } from "../../../../state/store";
 // Or, if the file does not exist, create 'store.ts' in the correct directory with the necessary exports.
 import type { RootState } from "../../../../state/store";
-import type { PuduGraphConfig } from "../../../../types";
+import type { PGConfig } from "../../../../types";
 
 import "./rowSidebar/pg-row-sidebar";
 
 @customElement("pg-sidebar")
 export class PuduGraphSidebar extends connect(store)(LitElement) {
   static styles = [unsafeCSS(cssStyles)];
-  private config: PuduGraphConfig | null = null;
+  private config: PGConfig | null = null;
   private data: any[] = [];
  private uiState: PuduGraphUIState = {};
 

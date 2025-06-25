@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { PuduGraphTabConfig, PuduGraphUIState } from '../types';
+import type { PGTabConfig, PuduGraphUIState } from '../types';
 
 const initialState: PuduGraphUIState = {
   selectedTab: null,
@@ -14,7 +14,7 @@ const uiStateSlice = createSlice({
   name: 'uiState',
   initialState,
   reducers: {
-    setSelectedTab(state, action: PayloadAction<PuduGraphTabConfig | null>) {
+    setSelectedTab(state, action: PayloadAction<PGTabConfig | null>) {
       state.selectedTab = action.payload;
     },
     setSelectedRows(state, action: PayloadAction<string[]>) {

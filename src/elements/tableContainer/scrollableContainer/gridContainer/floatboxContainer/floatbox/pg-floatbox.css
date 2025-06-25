@@ -1,12 +1,21 @@
 /* floatbox */
 :host {
+
+  --pg-floatbox-top: 0px default;
+  --pg-floatbox-left: 0px default;
+  --pg-floatbox-width: 0px default;
+  --pg-floatbox-height: 0px default;
+
+  --pg-local-bg-color: red;
+
   display: block;
   position: absolute;
-  top: 200px;
-  left: 200px;
-  width: 90px;
-  height: 10px;
+  top: var(--pg-floatbox-top, 0px);
+  left: var(--pg-floatbox-left, 0px);
+  width: var(--pg-floatbox-width, 0px);
+  height: var(--pg-floatbox-height, 0px);
+
   max-height: var(--pg-item-height);
 
-  background-color: rgb(110, 8, 8);
+  background-color: var(--pg-local-bg-color, red);
 }

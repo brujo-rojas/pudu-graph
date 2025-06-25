@@ -1,6 +1,6 @@
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import type { PuduGraphConfig } from "../../../../types";
+import type { PGConfig } from "../../../../types";
 import cssStyles from "./pg-vertical-plots-container.css?inline";
 
 @customElement("pg-vertical-plots-container")
@@ -8,7 +8,7 @@ export class PuduGraphVerticalPlotsContainer extends LitElement {
   static styles = [unsafeCSS(cssStyles)];
 
   @property({ type: Object })
-  config: PuduGraphConfig = { options: {}, data: [] };
+  config: PGConfig = { options: {}, data: [] };
 
   render() {
     return html` <slot></slot> `;

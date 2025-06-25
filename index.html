@@ -16,17 +16,66 @@
     <script type="module">
       const graphElement = document.querySelector("pudu-graph");
       const config = {
+        options: {
+          startUnix: Date.parse("2025-03-20") / 1000,
+          endUnix: Date.parse("2025-06-20") / 1000,
+
+          header: {},
+          sidebar: {
+            width: 500,
+            columns: [
+              {
+                id: "id",
+                label: "ID",
+                field: "id",
+                type: "text",
+                width: 50,
+              },
+              {
+                id: "ha",
+                label: "HA",
+                field: "ha",
+                type: "input",
+                width: 60,
+              },
+            ],
+          },
+          tabs: [
+            {
+              id: 1,
+              title: "Alfa",
+              color: "#3498db",
+              accentColor: "#2980b9",
+            },
+            {
+              id: 2,
+              title: "Beta",
+              color: "#e74c3c",
+              accentColor: "#c0392b",
+            },
+            {
+              id: "gamma",
+              title: "Gamma",
+              color: "#2ecc71",
+              accentColor: "#27ae60",
+            },
+          ],
+        },
+
         data: [
           {
             id: 1,
             label: "N 1",
             tooltip: "Tooltip 1",
             values: {},
-            rowData: {
+            rowData: [{
               date: "2025-03-20",
-              unix: 1742007600,
-              value: 100,
-            },
+              startUnix: Date.parse("2025-03-25") / 1000,
+              endUnix: Date.parse("2025-03-27") / 1000,
+              color: "#3498db",
+              foo: 100,
+              bar: 200,
+            }],
           },
           {
             id: 2,
@@ -56,54 +105,8 @@
             id: 6,
             label: "N 6",
             tooltip: "Tooltip 6",
-            values: {},
           },
         ],
-        options: {
-          startUnix: 1742007600,
-          endUnix: 1749960000,
-
-          header: {},
-          sidebar:{
-            width: 500,
-            columns:[
-              {
-                id: "id",
-                label: "ID",
-                field: "id",
-                type: "text",
-                width: 50,
-              },
-              {
-                id: "ha",
-                label: "HA",
-                field: "ha",
-                type: "input",
-                width: 60,
-              },
-            ]
-          },
-          tabs: [
-            {
-              id: 1,
-              title: "Alfa",
-              color: "#3498db",
-              accentColor: "#2980b9",
-            },
-            {
-              id: 2,
-              title: "Beta",
-              color: "#e74c3c",
-              accentColor: "#c0392b",
-            },
-            {
-              id: "gamma",
-              title: "Gamma",
-              color: "#2ecc71",
-              accentColor: "#27ae60",
-            },
-          ],
-        },
       };
       if (graphElement) {
         //cambiar el estado de Loading

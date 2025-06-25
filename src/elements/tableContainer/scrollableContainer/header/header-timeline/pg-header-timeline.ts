@@ -3,18 +3,22 @@ import { customElement } from "lit/decorators.js";
 import cssStyles from "./pg-header-timeline.css?inline";
 import type { RootState } from "../../../../../state/store";
 import type {
-  PuduGraphConfig,
+  HeaderItem,
+  PGConfig,
   PuduGraphUIState,
 } from "../../../../../types/types";
 import { connect } from "pwa-helpers";
 import { store } from "../../../../../state/store";
 import getISOWeek from "../../../../../utils/getISOWeek";
+import formatDate from "../../../../../utils/formatDate";
+
+type AccItem = Record<number, { monthName: string; days: HeaderItem[] }>;
 
 @customElement("pg-header-timeline")
 export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
   static styles = [unsafeCSS(cssStyles)];
 
-  private config: PuduGraphConfig | null = null;
+  private config: PGConfig | null = null;
   private data: any[] = [];
   private uiState: PuduGraphUIState | null = null;
 
@@ -37,39 +41,38 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
       return [];
     }
 
-    const totalDuration = endUnix - startUnix;
-    const hours = Math.floor(totalDuration / 3600);
-    const days = Math.floor(hours / 24);
+    const DAY = 24 * 3600;
+    const totalDays = Math.ceil((endUnix - startUnix) / DAY);
 
-    const headerItems = [];
-    for (let i = 0; i < days; i++) {
-      const dayStart = startUnix + i * 24 * 3600;
-      const dayEnd = dayStart + 24 * 3600;
-      const hourLabels = [];
-      for (let j = 0; j < 24; j++) {
-        const hourStart = dayStart + j * 3600;
-        //HH:MM format
-        const hourLabel = new Date(hourStart * 1000)
-          .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-          .padStart(5, "0");
-        hourLabels.push(hourLabel);
-      }
+    const headerItems: HeaderItem[] = [];
+
+    for (let i = 0; i <= totalDays; i++) {
+      const dayStart = startUnix + i * DAY;
+      const dayEnd = dayStart + DAY;
+
+      // Usar Date con 'UTC' para evitar desfases de zona horaria local
+      const date = new Date(dayStart * 1000);
+      const utcMonth = date.getUTCMonth();
+      const utcDate = date.getUTCDate();
 
       headerItems.push({
-        localDate: new Date(dayStart * 1000).toLocaleDateString(),
-        monthNumber: new Date(dayStart * 1000).getMonth(),
-        dayNumber: new Date(dayStart * 1000).getDate(),
-        isoWeekNumber: getISOWeek(new Date(dayStart * 1000)),
+        localDate: date.toISOString().slice(0, 10), // YYYY-MM-DD en UTC
+        monthNumber: utcMonth,
+        dayNumber: utcDate,
+        isoWeekNumber: getISOWeek(
+          new Date(Date.UTC(date.getUTCFullYear(), utcMonth, utcDate))
+        ),
         show: true,
-        hours: hourLabels,
+        hours: [],
         startUnix: dayStart,
         endUnix: dayEnd,
       });
     }
 
     // Agrupar por mes, en objetos, con el titulo del mes y los días
-    const headerItemsByMonth = headerItems.reduce((acc, item) => {
+    const headerItemsByMonth = headerItems.reduce<AccItem>((acc, item) => {
       const month = item.monthNumber;
+
       if (!acc[month]) {
         acc[month] = {
           monthName: new Date(item.startUnix * 1000).toLocaleString("default", {
@@ -81,6 +84,12 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
       acc[month].days.push(item);
       return acc;
     }, {});
+
+    // Ordenar los meses y los días dentro de cada mes
+    Object.values(headerItemsByMonth).forEach((monthObj) => {
+      monthObj.days.sort((a, b) => a.dayNumber - b.dayNumber);
+    });
+
     console.log("Header Items by Month:", headerItemsByMonth);
     // Convertir el objeto a un array
     return Object.values(headerItemsByMonth);
@@ -88,7 +97,6 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
 
   render() {
     const headerItems = this.getHeaderItems();
-    console.log("Header Items:", headerItems);
 
     return html`
       <div class="pg-header-timeline">
@@ -96,17 +104,13 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
           (month) => html`
             <div class="month-header">
               <div class="month-title-container">
-              <div class="month-title">
-                ${month.monthName}
-              </div>
+                <div class="month-title">${month.monthName}</div>
               </div>
               <div class="days-container">
                 ${month.days.map(
                   (day) => html`
                     <div class="day-header">
-                      <div class="day-title">
-                        ${day.dayNumber}
-                      </div>
+                      <div class="day-title">${day.dayNumber}</div>
                     </div>
                   `
                 )}

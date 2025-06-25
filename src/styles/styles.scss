@@ -6,10 +6,10 @@
 
   --pg-zoom-value: 1;
   --pg-item-height: 40px;
-  --pg-cell-width: calc(30px * var(--pg-zoom-value, 1));
-
-  //--pg-grid-background-color: #f0f0f0;
-  //--pg-grid-border-color: #ccc;
+  --pg-initial-cell-width: 30px;
+  --pg-cell-width: calc(
+    var(--pg-initial-cell-width, 30px) * var(--pg-zoom-value, 1)
+  );
 
   --pg-internal-width: 7000px;
   --pg-internal-height: 1000px;

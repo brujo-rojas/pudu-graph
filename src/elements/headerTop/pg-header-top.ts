@@ -2,8 +2,8 @@ import { LitElement, html } from "lit-element";
 import { customElement, property } from "lit/decorators.js";
 import { unsafeCSS } from "lit";
 import type {
-  PuduGraphConfig,
-  PuduGraphTabConfig,
+  PGConfig,
+  PGTabConfig,
   PuduGraphUIState,
 } from "../../types";
 
@@ -24,10 +24,10 @@ export class PgHeaderTop extends connect(store)(LitElement) {
   @property({ type: Boolean })
   loading = false;
 
-  private config: PuduGraphConfig | null = null;
+  private config: PGConfig | null = null;
   private uiState: PuduGraphUIState | null = null;
-  private tabs: PuduGraphTabConfig[] = [];
-  private selectedTab: PuduGraphTabConfig | null = null;
+  private tabs: PGTabConfig[] = [];
+  private selectedTab: PGTabConfig | null = null;
 
   stateChanged(state: RootState): void {
     this.config = state.config;
@@ -36,7 +36,7 @@ export class PgHeaderTop extends connect(store)(LitElement) {
     this.selectedTab = this.uiState?.selectedTab ?? null;
   }
 
-  _handleTabClick(event: MouseEvent, tabConfig: PuduGraphTabConfig) {
+  _handleTabClick(event: MouseEvent, tabConfig: PGTabConfig) {
     event.preventDefault();
     event.stopPropagation();
     store.dispatch(setSelectedTab(tabConfig));

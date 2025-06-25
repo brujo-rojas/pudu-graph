@@ -4,15 +4,15 @@ import cssStyles from "./pg-row-sidebar.css?inline";
 import { connect } from "pwa-helpers";
 import { store, type RootState } from "./../../../../../state/store";
 import type {
-  PuduGraphConfig,
-  PuduGraphSidebarColumn,
+  PGConfig,
+  PGSidebarColumn,
 } from "../../../../../types";
 
 @customElement("pg-row-sidebar")
 export class PuduGraphRowSidebar extends connect(store)(LitElement) {
   static styles = [unsafeCSS(cssStyles)];
 
-  private config: PuduGraphConfig | null = null;
+  private config: PGConfig | null = null;
   // private data: any[] = [];
  private uiState: PuduGraphUIState = {};
 
@@ -35,7 +35,7 @@ export class PuduGraphRowSidebar extends connect(store)(LitElement) {
 
         <div class="row-content">
           ${this.config?.options?.sidebar?.columns?.map(
-            (column: PuduGraphSidebarColumn) => html`
+            (column: PGSidebarColumn) => html`
               <div
                 class="row-column"
                 style="--pg-local-column-width: ${column.width}px;"
