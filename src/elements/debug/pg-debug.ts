@@ -1,11 +1,10 @@
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement } from "lit/decorators.js";
 import { connect } from "pwa-helpers";
-import { store } from "../../state/store";
-import type { PGConfig, PuduGraphUIState } from "../../types/types";
-import type { RootState } from "../../state/store";
-import cssStyles from "./pg-debug.css?inline";
-
+import { store } from "@state/store";
+import type { PGConfig, PGUIState } from "@/types";
+import type { RootState } from "@state/store";
+import cssStyles from "./pg-debug.scss?inline";
 
 @customElement("pg-debug")
 export class PgDebug extends connect(store)(LitElement) {
@@ -13,7 +12,7 @@ export class PgDebug extends connect(store)(LitElement) {
 
   private config: PGConfig | null = null;
   private data: any[] = [];
- private uiState: PuduGraphUIState = {};
+  private uiState: PGUIState = {};
 
   stateChanged(state: RootState) {
     this.config = state.config;
@@ -23,14 +22,23 @@ export class PgDebug extends connect(store)(LitElement) {
   }
 
   render() {
-    return html`<div>
+    return html`<div class="pg-debug">
       <h2>Debug</h2>
-      <h3>UI State</h3>
-      <pre> ${JSON.stringify(this.uiState, null, 2)}</pre>
-      <h3>Config</h3>
-      <pre> ${JSON.stringify(this.config, null, 2)}</pre>
-      <h3>Data</h3>
-      <pre> ${JSON.stringify(this.data, null, 2)}</pre>
+
+      <article>
+        <section>
+          <h3>UI State</h3>
+          <pre> ${JSON.stringify(this.uiState, null, 2)}</pre>
+        </section>
+        <section>
+          <h3>Config</h3>
+          <pre> ${JSON.stringify(this.config, null, 2)}</pre>
+        </section>
+        <section>
+          <h3>Data</h3>
+          <pre> ${JSON.stringify(this.data, null, 2)}</pre>
+        </section>
+      </article>
     </div> `;
   }
 }

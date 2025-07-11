@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { PGConfig } from "../types";
+import type { PGConfig } from "@/types";
 
 const initialState: PGConfig = {
   data: [],

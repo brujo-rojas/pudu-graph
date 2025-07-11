@@ -8,21 +8,23 @@
     <script type="module" src="/src/pudu-graph.ts"></script>
   </head>
   <body>
-    <pudu-graph loading="true">
-      <div slot="headerTopLeft"></div>
-      <div slot="headerTopRight"></div>
-    </pudu-graph>
+    <pudu-graph loading="true"></pudu-graph>
 
     <script type="module">
       const graphElement = document.querySelector("pudu-graph");
       const config = {
         options: {
-          startUnix: Date.parse("2025-03-20") / 1000,
-          endUnix: Date.parse("2025-06-20") / 1000,
+          startUnix: Date.parse("2025-05-20T00:00:00Z") / 1000,
+          endUnix: Date.parse("2025-08-20T00:00:00Z") / 1000,
+
+          itemHeight: 60, // Altura de los items en la barra lateral
+          flexBoxHeight: 20, // Altura del contenedor flexible de la barra
+          dayWidth: 30, // Ancho de cada día en la línea de tiempo
 
           header: {},
           sidebar: {
             width: 500,
+            appendWidth: 50,
             columns: [
               {
                 id: "id",
@@ -38,28 +40,15 @@
                 type: "input",
                 width: 60,
               },
+              {
+                id: "hour",
+                label: "hour",
+                field: "hour",
+                type: "hour",
+                width: 60,
+              },
             ],
           },
-          tabs: [
-            {
-              id: 1,
-              title: "Alfa",
-              color: "#3498db",
-              accentColor: "#2980b9",
-            },
-            {
-              id: 2,
-              title: "Beta",
-              color: "#e74c3c",
-              accentColor: "#c0392b",
-            },
-            {
-              id: "gamma",
-              title: "Gamma",
-              color: "#2ecc71",
-              accentColor: "#27ae60",
-            },
-          ],
         },
 
         data: [
@@ -68,14 +57,66 @@
             label: "N 1",
             tooltip: "Tooltip 1",
             values: {},
-            rowData: [{
-              date: "2025-03-20",
-              startUnix: Date.parse("2025-03-25") / 1000,
-              endUnix: Date.parse("2025-03-27") / 1000,
-              color: "#3498db",
-              foo: 100,
-              bar: 200,
-            }],
+            rowData: [
+              {
+                startUnix: Date.parse("2025-05-25T00:00:00Z") / 1000,
+                endUnix: Date.parse("2025-05-27T10:00:00Z") / 1000,
+                color: "#3498db",
+              },
+
+              {
+                startUnix: Date.parse("2025-05-28T00:00:00Z") / 1000,
+                endUnix: Date.parse("2025-05-30T10:00:00Z") / 1000,
+                color: "red",
+              },
+
+              {
+                startUnix: Date.parse("2025-05-25T00:00:00Z") / 1000,
+                endUnix: Date.parse("2025-05-31T10:00:00Z") / 1000,
+                color: "green",
+              },
+
+              {
+                startUnix: Date.parse("2025-05-25T00:00:00Z") / 1000,
+                endUnix: Date.parse("2025-06-01T01:00:00Z") / 1000,
+                color: "yellow",
+              },
+
+
+
+              {
+                startUnix: Date.parse("2025-06-03T00:00:00Z") / 1000,
+                endUnix: Date.parse("2025-06-04T00:00:00Z") / 1000,
+                color: "blue",
+              },
+              {
+                startUnix: Date.parse("2025-06-03T02:00:00Z") / 1000,
+                endUnix: Date.parse("2025-06-04T02:00:00Z") / 1000,
+                color: "red",
+              },
+              {
+                startUnix: Date.parse("2025-06-03T04:00:00Z") / 1000,
+                endUnix: Date.parse("2025-06-04T04:00:00Z") / 1000,
+                color: "green",
+              },
+              {
+                startUnix: Date.parse("2025-06-03T06:00:00Z") / 1000,
+                endUnix: Date.parse("2025-06-04T06:00:00Z") / 1000,
+                color: "yellow",
+              },
+              {
+                startUnix: Date.parse("2025-06-03T08:00:00Z") / 1000,
+                endUnix: Date.parse("2025-06-04T08:00:00Z") / 1000,
+                color: "blue",
+              },
+              {
+                startUnix: Date.parse("2025-06-03T10:00:00Z") / 1000,
+                endUnix: Date.parse("2025-06-04T10:00:00Z") / 1000,
+                color: "red",
+              },
+
+
+            ],
           },
           {
             id: 2,

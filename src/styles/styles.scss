@@ -1,6 +1,6 @@
 @use "sass:color";
 
-.pg-container {
+pg-cssvars-controller {
   --pg-sidebar-width: 250px;
   --pg-header-height: 50px;
 
@@ -14,15 +14,27 @@
   --pg-internal-width: 7000px;
   --pg-internal-height: 1000px;
 
-  --pg-header-top-background-color: #f8f8f8;
-  --pg-header-top-border-color: #ccc;
-  --pg-header-top-height: 30px;
-  --pg-header-top-button-color: #007bff;
+  // --pg-header-top-background-color: #189c5a;
+  // --pg-header-top-border-color: #06f7ff;
 
-  --pg-header-background-color: #969696;
-  --pg-header-border-color: #ff0000;
+  // --pg-header-top-button-background-color: #1580aa;
+  // --pg-header-top-button-color: #1a9c2b;
+  // --pg-header-top-button-border-color: #146e92;
+  // --pg-header-top-button-hover-background-color: #126a7f;
+  // --pg-header-top-button-hover-color: #1a9c2b;
+  // --pg-header-top-button-active-background-color: #0f5a6b;
+  // --pg-header-top-button-active-color: #1a9c2b;
 
-  --pg-sidebar-background-color: #969696;
+  // --pg-tab-color: #333;
+  // --pg-tab-background-color: #007bff;
+  // --pg-tab-border-color: #0056b3;
+  // --pg-tab-hover-background-color: #0056b3;
+  // --pg-tab-active-background-color: #0056b3;
+
+  --pg-header-background-color: #756363;
+  --pg-header-border-color: #3cff00;
+
+  --pg-sidebar-background-color: #be7c19;
   --pg-sidebar-border-color: #ff0000;
   --pg-sidebar-item-background-color: #e0e0e0;
 }

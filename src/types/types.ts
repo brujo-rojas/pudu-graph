@@ -1,30 +1,22 @@
+import type { LitElement } from "lit";
+
 export interface PGConfig {
-  data: PuduGraphRowData[];
+  data: PGRowData[];
   options: PGOptions;
 }
 
 export interface PGOptions {
   title?: string; // Título del gráfico
-
   startUnix?: number; // Timestamp de inicio en milisegundos
   endUnix?: number; // Timestamp de fin en milisegundos
-
-  isDark?: boolean; // Modo oscuro
-  showTabs?: boolean; // Mostrar pestañas
-  tabs?: PGTabConfig[]; // Pestañas del gráfico
   header?: PGHeaderConfig; // Encabezado del gráfico
   footer?: PGFooter; // Pie de página del gráfico
   sidebar?: PGSidebar; // Barra lateral del gráfico
   theme?: PGTheme; // Tema del gráfico
-  colors?: { [key: string]: string }; // Colores personalizados
-}
 
-export interface PGTabConfig {
-  id: string; // Identificador único de la pestaña
-  title: string; // Título de la pestaña
-  color?: string; // Color de la pestaña
-  accentColor?: string; // Color de acento de la pestaña
-  isActive?: boolean; // Indica si la pestaña está activa
+  itemHeight?: number; // Altura de los items en la barra lateral
+  flexBoxHeight?: number; // Altura del contenedor flexible de la barra lateral
+  dayWidth?: number; // Ancho de cada día en la línea de tiempo
 }
 
 export interface PGHeaderConfig {}
@@ -34,18 +26,29 @@ export interface PGFooter {}
 export interface PGSidebar {
   columns?: PGSidebarColumn[]; // Columnas visibles en la barra lateral
   width?: number; // Ancho de la barra lateral en píxeles
-
-  // agregar Eventos?
+  appendWidth?: number; // Ancho adicional para la barra lateral
 }
+
+export type PGSidebarColumnType =
+  | "text"
+  | "number"
+  | "date"
+  | "hours"
+  | "custom";
 
 export interface PGSidebarColumn {
   id: string; // Identificador único de la columna
   label: string; // Título de la columna
-  type: "text" | "input"; // Tipo de columna (texto o entrada)
+  type: PGSidebarColumnType; // Tipo de dato de la columna
   field: string; // Campo asociado a la columna
   headerTooltip?: string; // Tooltip de la columna
   isVisible?: boolean; // Indica si la columna es visible
   width?: number; // Ancho de la columna en píxeles
+  render?: (
+    row: PGRowData,
+    column: PGSidebarColumn,
+    host: LitElement
+  ) => HTMLElement; // Función de renderizado personalizada para la columna
 }
 
 export interface PGTheme {
@@ -56,24 +59,24 @@ export interface PGTheme {
   borderColor?: string; // Color del borde del tema
 }
 
-export interface PuduGraphRowData {
+export interface PGRowData {
   id: number | string; // Identificador único de la fila
   label: string; // Título de la fila
   tooltip?: string; // Tooltip de la fila
-  values: Object; // Valores asociados a la fila
+  values: { [key: string]: any }; // Valores asociados a la fila, puede ser un objeto con múltiples campos
   rowData: PGItemData[]; // Datos de la fila, array de objetos con fecha y valor
 }
 
 export interface PGItemData {
-  date: string; // Fecha en formato ISO
-  unix: number; // Timestamp en milisegundos
-  value: number; // Valor asociado a la fecha
+  startUnix: number; // Timestamp de inicio en milisegundos
+  endUnix: number; // Timestamp de fin en milisegundos
+  value?: number; // Valor asociado a la fecha
   [key: string]: any; // Otros campos adicionales
   color?: string; // Color asociado al valor
+  overlapLevel?: number; // Nivel de superposición para el item
 }
 
-export interface PuduGraphUIState {
-  selectedTab?: PGTabConfig | null;
+export interface PGUIState {
   selectedRowIds?: string[];
   scrollLeft?: number;
   scrollTop?: number;

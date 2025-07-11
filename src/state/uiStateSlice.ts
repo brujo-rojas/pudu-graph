@@ -1,9 +1,8 @@
-import { createSlice } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
-import type { PGTabConfig, PuduGraphUIState } from '../types';
+import { createSlice } from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+import type { PGUIState } from "@/types";
 
-const initialState: PuduGraphUIState = {
-  selectedTab: null,
+const initialState: PGUIState = {
   selectedRowIds: [],
   scrollLeft: 0,
   scrollTop: 0,
@@ -11,12 +10,9 @@ const initialState: PuduGraphUIState = {
 };
 
 const uiStateSlice = createSlice({
-  name: 'uiState',
+  name: "uiState",
   initialState,
   reducers: {
-    setSelectedTab(state, action: PayloadAction<PGTabConfig | null>) {
-      state.selectedTab = action.payload;
-    },
     setSelectedRows(state, action: PayloadAction<string[]>) {
       state.selectedRowIds = action.payload;
     },
@@ -31,5 +27,5 @@ const uiStateSlice = createSlice({
   },
 });
 
-export const { setSelectedTab, setSelectedRows, setScroll, setZoom } = uiStateSlice.actions;
+export const { setSelectedRows, setScroll, setZoom } = uiStateSlice.actions;
 export default uiStateSlice.reducer;

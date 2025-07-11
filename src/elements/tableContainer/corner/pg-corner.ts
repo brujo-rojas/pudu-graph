@@ -2,12 +2,8 @@ import { LitElement, html, unsafeCSS } from "lit";
 import { customElement } from "lit/decorators.js";
 import cssStyles from "./pg-corner.css?inline";
 import { connect } from "pwa-helpers";
-import { store, type RootState } from "./../../../state/store";
-import type {
-  PGConfig,
-  PGSidebarColumn,
-  PuduGraphUIState,
-} from "../../../types";
+import { store, type RootState } from "@state/store";
+import type { PGConfig, PGSidebarColumn, PGUIState } from "@/types";
 
 @customElement("pg-corner")
 export class PgCorner extends connect(store)(LitElement) {
@@ -15,7 +11,7 @@ export class PgCorner extends connect(store)(LitElement) {
 
   private config: PGConfig | null = null;
   // private data: any[] = [];
-  private uiState: PuduGraphUIState = {};
+  private uiState: PGUIState = {};
 
   stateChanged(state: RootState): void {
     console.log("stateChanged", state);
