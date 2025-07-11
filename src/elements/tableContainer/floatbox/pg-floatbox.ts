@@ -42,10 +42,29 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   private activePointerId: number | null = null;
   private fixedTop = 0;
 
+  private isResizing = false;
+  private resizeStartX = 0;
+  private initialWidth = 0;
+
+  private dragStartBoxLeft = 0;
+
   stateChanged(state: RootState): void {
     this.config = state.config;
     this.uiState = state.uiState;
     this.requestUpdate();
+  }
+
+  /**
+   * Convierte una posición left (px) a una fecha/hora (timestamp) según la configuración actual.
+   */
+  private leftToUnix(left: number): number {
+    if (!this.config || !this.uiState) return 0;
+    const { startUnix = 0, dayWidth = 30 } = this.config.options;
+    const zoom = this.uiState.zoomValue ?? 1;
+    const DAY_SECONDS = 24 * 3600;
+    // left = ((itemStartUnix - startUnix) / DAY_SECONDS) * dayWidth * zoom
+    // => itemStartUnix = left / (dayWidth * zoom) * DAY_SECONDS + startUnix
+    return Math.round(left / (dayWidth * zoom) * DAY_SECONDS + startUnix);
   }
 
   /**
@@ -105,6 +124,12 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     this.dragOffsetY = clientY - rect.top;
     // Guarda el top absoluto para arrastre horizontal
     this.fixedTop = rect.top;
+    // Guarda el left absoluto inicial del floatbox
+    this.dragStartBoxLeft = rect.left;
+
+    // Usa el tamaño real del floatbox para el drag y para el estado
+    this.width = rect.width;
+    this.height = rect.height;
 
     this.isDragging = true;
     this.activePointerId = e.pointerId;
@@ -130,8 +155,6 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     window.addEventListener("pointercancel", this.onPointerCancel);
   }
 
-  private parentRect: { left: number; top: number } = { left: 0, top: 0 };
-
   private onPointerMove = (e: PointerEvent) => {
     if (e.pointerId !== this.activePointerId) return;
     let clientX = e.clientX;
@@ -150,22 +173,48 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     this.activePointerId = null;
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
     if (this.dragElement) {
+      // Calcula el left real del clon respecto al viewport
+      const dragRect = this.dragElement.getBoundingClientRect();
+      // Calcula el delta de movimiento respecto al floatbox original
+      const delta = dragRect.left - this.dragStartBoxLeft;
+      // Calcula el left lógico nuevo (en el sistema de referencia del modelo)
+      const { left: originalLeft } = this.calculateFloatboxPosition();
+      const newLeft = originalLeft + delta;
+      this.left = newLeft;
+      this.style.setProperty("--pg-floatbox-left", `${newLeft}px`);
       this.dragElement.remove();
       this.dragElement = null;
+      // Calcula la posición relativa dentro del floatbox original
+      const floatbox = this.renderRoot.querySelector(
+        ".pg-floatbox"
+      ) as HTMLElement;
+      let x = 0, y = 0;
+      if (floatbox) {
+        const rect = floatbox.getBoundingClientRect();
+        x = clientX - rect.left;
+        y = clientY - rect.top;
+      }
+      // Actualiza el modelo de datos para reflejar la nueva posición
+      if (this.itemData && typeof newLeft === 'number') {
+        const oldStart = this.itemData.startUnix || 0;
+        const oldEnd = this.itemData.endUnix || 0;
+        const newStart = this.leftToUnix(newLeft);
+        const delta = newStart - oldStart;
+        this.itemData.startUnix = newStart;
+        this.itemData.endUnix = oldEnd + delta;
+        // Recalcula el ancho en base a la nueva posición
+        const { width } = this.calculateFloatboxPosition();
+        this.width = width;
+        this.style.setProperty("--pg-floatbox-width", `${width}px`);
+      }
+      // Llama a onDrop con la nueva posición
+      this.onDrop(x, y, newLeft);
+      // Limpia la referencia de dragStartBoxLeft
+      this.dragStartBoxLeft = 0;
     }
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerup", this.onPointerUp);
     window.removeEventListener("pointercancel", this.onPointerCancel);
-    // Calcula la posición relativa dentro del floatbox original
-    const floatbox = this.renderRoot.querySelector(
-      ".pg-floatbox"
-    ) as HTMLElement;
-    if (floatbox) {
-      const rect = floatbox.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const y = clientY - rect.top;
-      this.onDrop(x, y);
-    }
   };
 
   private onPointerCancel = (e: PointerEvent) => {
@@ -197,10 +246,56 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   }
 
   // Esta función se puede reemplazar por un dispatch de evento personalizado
-  private onDrop(x: number, y: number) {
+  private onDrop(x: number, y: number, newLeft?: number) {
     // Por ahora solo loguea, pero aquí puedes mover el elemento original
-    console.log("Drop en:", x, y, "item:", this.itemData);
+    if (typeof newLeft === 'number') {
+      const unix = this.leftToUnix(newLeft);
+      const date = new Date(unix * 1000);
+      // Actualiza el modelo de datos para que el siguiente drag parta de la nueva posición
+      if (this.itemData) {
+        this.itemData.startUnix = unix;
+        this.requestUpdate();
+      }
+      console.log("Drop en:", x, y, "item:", this.itemData, "left:", newLeft, "fecha/hora:", date.toISOString());
+    } else {
+      console.log("Drop en:", x, y, "item:", this.itemData);
+    }
   }
+
+  private onResizeStart = (e: PointerEvent) => {
+    e.stopPropagation();
+    this.isResizing = true;
+    this.resizeStartX = e.clientX;
+    this.initialWidth = this.width;
+    this.activePointerId = e.pointerId;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    window.addEventListener("pointermove", this.onResizeMove);
+    window.addEventListener("pointerup", this.onResizeEnd);
+    window.addEventListener("pointercancel", this.onResizeEnd);
+  };
+
+  private onResizeMove = (e: PointerEvent) => {
+    if (!this.isResizing || e.pointerId !== this.activePointerId) return;
+    const deltaX = e.clientX - this.resizeStartX;
+    const newWidth = Math.max(10, this.initialWidth + deltaX);
+    this.width = newWidth;
+    if (this.dragElement) {
+      this.dragElement.style.width = `${newWidth}px`;
+    }
+    // Actualiza el ancho visual del floatbox original
+    this.style.setProperty("--pg-floatbox-width", `${newWidth}px`);
+  };
+
+  private onResizeEnd = (e: PointerEvent) => {
+    if (!this.isResizing || e.pointerId !== this.activePointerId) return;
+    this.isResizing = false;
+    this.activePointerId = null;
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    window.removeEventListener("pointermove", this.onResizeMove);
+    window.removeEventListener("pointerup", this.onResizeEnd);
+    window.removeEventListener("pointercancel", this.onResizeEnd);
+    // Aquí podrías actualizar el dato original si lo deseas
+  };
 
   connectedCallback() {
     super.connectedCallback();
@@ -222,8 +317,17 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     const color = this.itemData?.color || "red";
     this.updateStyles(left, top, width, height, color);
     return html`
-      <div class="pg-floatbox" style="touch-action: none;">
+      <div
+        class="pg-floatbox"
+        style="touch-action: none; position: relative;"
+        style=" width: ${width}px; height: ${height}px; "
+      >
         ${this.itemData?.foo}
+        <div
+          class="resize-handle"
+          style="position: absolute; right: 0; top: 0; width: 8px; height: 100%; cursor: ew-resize; z-index: 10; background: rgba(255, 0, 0, 0.5);"
+          @pointerdown=${this.onResizeStart}
+        ></div>
       </div>
     `;
   }
