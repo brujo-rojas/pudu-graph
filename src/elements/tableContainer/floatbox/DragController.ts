@@ -62,9 +62,6 @@ interface DropEventParams {
  */
 class DragController {
   // Estado interno
-  //private width = 0;
-  //private height = 0;
-  //private left = 0;
   private dragOffsetX = 0;
   private dragOffsetY = 0;
   private fixedTop = 0;
@@ -84,69 +81,43 @@ class DragController {
   // Callback para notificar drop
   private onDropCallback: ((params: DropCallbackParams) => void) | null = null;
 
-  constructor({
-    itemData,
-    config,
-    zoomValue,
-    renderRoot,
-    rowIndex = 0,
-    dragHorizontalOnly = true,
-  }: DragControllerParams) {
-    this.itemData = itemData;
-    this.config = config;
-    this.zoomValue = zoomValue;
-    this.renderRoot = renderRoot;
-    this.rowIndex = rowIndex;
-    this.dragHorizontalOnly = dragHorizontalOnly;
+  constructor(params: DragControllerParams) {
+    this.itemData = params.itemData;
+    this.config = params.config;
+    this.zoomValue = params.zoomValue;
+    this.renderRoot = params.renderRoot;
+    this.rowIndex = params.rowIndex ?? 0;
+    this.dragHorizontalOnly = params.dragHorizontalOnly ?? true;
   }
 
-  /**
-   * Activa los eventos de drag sobre el componente host.
-   */
+  /** Activa los eventos de drag sobre el componente host. */
   addDragEvents(host: LitElement) {
     host.addEventListener("pointerdown", this.onPointerDown);
   }
 
-  /**
-   * Desactiva los eventos de drag sobre el componente host.
-   */
+  /** Desactiva los eventos de drag sobre el componente host. */
   removeDragEvents(host: LitElement) {
     host.removeEventListener("pointerdown", this.onPointerDown);
   }
 
-  /**
-   * Handler para pointerdown: inicia el drag.
-   */
+  /** Handler para pointerdown: inicia el drag. */
   private onPointerDown = (e: PointerEvent) => {
     const floatbox = this.getFloatBoxChildElement(this.renderRoot);
     if (!floatbox) return;
-    this.startDrag({ event: e, floatbox });
+    this.startDrag(e, floatbox);
   };
 
-  /**
-   * Inicia el drag y crea el elemento visual.
-   */
-  private startDrag({
-    event,
-    floatbox,
-  }: {
-    event: PointerEvent;
-    floatbox: HTMLElement;
-  }) {
+  /** Inicia el drag y crea el elemento visual. */
+  private startDrag(event: PointerEvent, floatbox: HTMLElement) {
     const rect = floatbox.getBoundingClientRect();
     this.dragOffsetX = event.clientX - rect.left;
     this.dragOffsetY = event.clientY - rect.top;
     this.fixedTop = rect.top;
     this.dragStartBoxLeft = rect.left;
-    //this.width = rect.width;
-    //this.height = rect.height;
     this.isDragging = true;
     this.activePointerId = event.pointerId;
     (event.target as HTMLElement).setPointerCapture(event.pointerId);
-    this.dragElement = this.createDragElement({
-      floatbox,
-      color: this.itemData?.color || "red",
-    });
+    this.dragElement = this.createDragElement({ floatbox, color: this.itemData?.color || "red" });
     document.body.appendChild(this.dragElement);
     this.updateDragElementPosition({
       dragElement: this.dragElement,
@@ -160,27 +131,21 @@ class DragController {
     this.addPointerEvents();
   }
 
-  /**
-   * Agrega listeners globales para el drag.
-   */
+  /** Agrega listeners globales para el drag. */
   private addPointerEvents() {
     window.addEventListener("pointermove", this.onPointerMove);
     window.addEventListener("pointerup", this.onPointerUp);
     window.addEventListener("pointercancel", this.onPointerCancel);
   }
 
-  /**
-   * Elimina listeners globales para el drag.
-   */
+  /** Elimina listeners globales para el drag. */
   private removePointerEvents() {
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerup", this.onPointerUp);
     window.removeEventListener("pointercancel", this.onPointerCancel);
   }
 
-  /**
-   * Handler para pointermove: actualiza la posición del drag visual.
-   */
+  /** Handler para pointermove: actualiza la posición del drag visual. */
   private onPointerMove = (e: PointerEvent) => {
     if (e.pointerId !== this.activePointerId) return;
     if (!this.isDragging || !this.dragElement) return;
@@ -196,31 +161,19 @@ class DragController {
     e.preventDefault();
   };
 
-  /**
-   * Handler para pointerup: termina el drag y actualiza datos.
-   */
+  /** Handler para pointerup: termina el drag y actualiza datos. */
   private onPointerUp = (e: PointerEvent) => {
     if (e.pointerId !== this.activePointerId) return;
     if (!this.isDragging || !this.dragElement) return;
     this.isDragging = false;
     this.activePointerId = null;
-    this.finishDrag({
-      e,
-      config: this.config,
-      itemData: this.itemData,
-      dragElement: this.dragElement,
-      renderRoot: this.renderRoot,
-      rowIndex: this.rowIndex,
-      zoomValue: this.zoomValue,
-    });
+    this.finishDrag(e);
     this.dragStartBoxLeft = 0;
     this.dragElement.remove();
     this.dragElement = null;
   };
 
-  /**
-   * Handler para pointercancel: cancela el drag.
-   */
+  /** Handler para pointercancel: cancela el drag. */
   private onPointerCancel = (e: PointerEvent) => {
     if (e.pointerId !== this.activePointerId) return;
     this.isDragging = false;
@@ -232,86 +185,56 @@ class DragController {
     this.removePointerEvents();
   };
 
-  /**
-   * Termina el drag, actualiza modelo y notifica el drop.
-   */
-  private finishDrag({
-    e,
-    config,
-    itemData,
-    dragElement,
-    renderRoot,
-    rowIndex,
-    zoomValue,
-  }: PointerUpParams) {
-    const floatbox = this.getFloatBoxChildElement(renderRoot);
-    if (!floatbox) return;
+  /** Termina el drag, actualiza modelo y notifica el drop. */
+  private finishDrag(e: PointerEvent) {
+    const floatbox = this.getFloatBoxChildElement(this.renderRoot);
+    if (!floatbox || !this.dragElement) return;
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    const dragRect = dragElement.getBoundingClientRect();
+    const dragRect = this.dragElement.getBoundingClientRect();
     const { left: originalLeft } = calculateFloatboxPosition({
-      config,
-      itemData,
-      rowIndex,
-      zoomValue,
+      config: this.config,
+      itemData: this.itemData,
+      rowIndex: this.rowIndex,
+      zoomValue: this.zoomValue,
     });
     const newLeft = originalLeft + (dragRect.left - this.dragStartBoxLeft);
     const rect = floatbox.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     // Actualiza el modelo de datos para reflejar la nueva posición
-    const oldStart = itemData.startUnix || 0;
-    const oldEnd = itemData.endUnix || 0;
-    const newStart = leftToUnix({ config, left: newLeft, zoomValue });
-    itemData.startUnix = newStart;
-    itemData.endUnix = oldEnd + (newStart - oldStart);
+    const oldStart = this.itemData.startUnix || 0;
+    const oldEnd = this.itemData.endUnix || 0;
+    const newStart = leftToUnix({ config: this.config, left: newLeft, zoomValue: this.zoomValue });
+    this.itemData.startUnix = newStart;
+    this.itemData.endUnix = oldEnd + (newStart - oldStart);
     // Recalcula el ancho en base a la nueva posición
     const { width } = calculateFloatboxPosition({
-      config,
-      itemData,
-      rowIndex,
-      zoomValue,
+      config: this.config,
+      itemData: this.itemData,
+      rowIndex: this.rowIndex,
+      zoomValue: this.zoomValue,
     });
-    //this.left = newLeft;
-    //this.width = width;
-    // Notifica el drop
-    this.notifyDrop({ x, y, newLeft, zoomValue, width });
+    this.notifyDrop({ x, y, newLeft, zoomValue: this.zoomValue, width });
     this.removePointerEvents();
   }
 
-  /**
-   * Actualiza la posición del elemento visual de drag.
-   */
-  private updateDragElementPosition({
-    dragElement,
-    x,
-    y,
-    dragOffsetX,
-    dragOffsetY,
-    dragHorizontalOnly,
-    fixedTop,
-  }: DragPositionParams) {
+  /** Actualiza la posición del elemento visual de drag. */
+  private updateDragElementPosition(params: DragPositionParams) {
+    const { dragElement, x, y, dragOffsetX, dragOffsetY, dragHorizontalOnly, fixedTop } = params;
     if (!dragElement) return;
     const left = x - dragOffsetX;
     dragElement.style.left = `${left}px`;
-    dragElement.style.top = dragHorizontalOnly
-      ? `${fixedTop}px`
-      : `${y - dragOffsetY}px`;
+    dragElement.style.top = dragHorizontalOnly ? `${fixedTop}px` : `${y - dragOffsetY}px`;
   }
 
-  /**
-   * Obtiene el elemento floatbox del renderRoot.
-   */
+  /** Obtiene el elemento floatbox del renderRoot. */
   private getFloatBoxChildElement(renderRoot: RenderRoot): HTMLElement | null {
     return renderRoot.querySelector(".pg-floatbox") as HTMLElement;
   }
 
-  /**
-   * Crea el elemento visual para el drag.
-   */
-  private createDragElement({
-    floatbox,
-    color,
-  }: DragElementParams): HTMLElement {
+  /** Crea el elemento visual para el drag. */
+  private createDragElement(params: DragElementParams): HTMLElement {
+    const { floatbox, color } = params;
     const dragDiv = document.createElement("div");
     const { borderRadius, border } = getComputedStyle(floatbox);
     const { width, height } = floatbox.getBoundingClientRect();
@@ -328,16 +251,9 @@ class DragController {
     return dragDiv;
   }
 
-  /**
-   * Notifica el drop al callback externo.
-   */
-  private notifyDrop({
-    x,
-    y,
-    newLeft,
-    zoomValue,
-    width,
-  }: DropEventParams): void {
+  /** Notifica el drop al callback externo. */
+  private notifyDrop(params: DropEventParams): void {
+    const { x, y, newLeft, zoomValue, width } = params;
     if (!newLeft || !this.itemData || !this.config) return;
     const unix = leftToUnix({ config: this.config, left: newLeft, zoomValue });
     const date = new Date(unix * 1000);
@@ -345,9 +261,7 @@ class DragController {
     this.onDropCallback?.({ x, y, newLeft, date, width });
   }
 
-  /**
-   * Permite registrar un callback para el drop.
-   */
+  /** Permite registrar un callback para el drop. */
   onDrop(callback: (params: DropCallbackParams) => void) {
     if (typeof callback !== "function") {
       console.warn("onDrop debe ser una función");
@@ -358,4 +272,3 @@ class DragController {
 }
 
 export default DragController;
-// Llama a onDrop con la nueva posición
