@@ -1,6 +1,6 @@
 {
   "name": "pudu-graph",
-  "version": "0.0.1-develop.2025-09-25T05-09-48-develop.2025-09-25T05-10-14-develop.2025-09-25T05-11-39",
+  "version": "0.0.1",
   "type": "module",
   "main": "dist/pudu-graph.js",
   "module": "dist/pudu-graph.js",
