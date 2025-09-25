@@ -7,9 +7,27 @@
   "types": "dist/pudu-graph.d.ts",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && npm run copy-react-wrapper",
+    "build": "tsc && vite build && npm run copy-react-wrapper && npm run generate-types",
     "copy-react-wrapper": "mkdir -p dist/react && cp src/react/PuduGraphReact.tsx dist/react/PuduGraphReact.tsx",
-    "preview": "vite preview"
+    "generate-types": "tsc --emitDeclarationOnly --declaration --declarationDir dist",
+    "preview": "vite preview",
+    "version:patch": "node scripts/release.js patch",
+    "version:minor": "node scripts/release.js minor", 
+    "version:major": "node scripts/release.js major",
+    "release:patch": "node scripts/release.js patch",
+    "release:minor": "node scripts/release.js minor",
+    "release:major": "node scripts/release.js major",
+    "release:beta": "node scripts/release.js patch beta",
+    "release:simple": "./scripts/simple-release.sh",
+    "publish:dry-run": "npm pack --dry-run",
+    "publish:check": "npm run build && npm run publish:dry-run",
+    "publish": "npm run build && npm publish",
+    "publish:beta": "npm run build && npm publish --tag beta",
+    "pre-release": "npm run build && npm publish --tag beta",
+    "post-release": "npm run build && npm publish",
+    "clean": "rm -rf dist node_modules/.vite",
+    "clean:all": "rm -rf dist node_modules package-lock.json",
+    "reinstall": "npm run clean:all && npm install"
   },
   "files": [
     "dist",
@@ -17,11 +35,12 @@
   ],
   "exports": {
     ".": {
+      "types": "./dist/pudu-graph.d.ts",
       "import": "./dist/pudu-graph.js",
-      "require": "./dist/pudu-graph.js",
-      "types": "./dist/pudu-graph.d.ts"
+      "require": "./dist/pudu-graph.js"
     },
     "./react/PuduGraphReact": {
+      "types": "./dist/react/PuduGraphReact.d.ts",
       "import": "./dist/react/PuduGraphReact.js",
       "require": "./dist/react/PuduGraphReact.js"
     }
@@ -41,15 +60,5 @@
     "sass": "^1.89.0",
     "typescript": "~5.8.3",
     "vite": "^6.3.5"
-  },
-  "compilerOptions": {
-    "outDir": "dist",
-    "declaration": true,
-    "declarationDir": "dist",
-    "emitDeclarationOnly": false,
-    "rootDir": "src"
-  },
-  "include": [
-    "src"
-  ]
+  }
 }
