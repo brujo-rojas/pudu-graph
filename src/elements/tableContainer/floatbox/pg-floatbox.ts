@@ -20,6 +20,7 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   private height = 0;
   private top = 0;
   private left = 0;
+  private isResizing = false; // Flag para evitar re-render durante resize
 
   private dragController!: DragController;
   private resizeController!: ResizeController;
@@ -49,6 +50,12 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   stateChanged(state: RootState): void {
     this.config = state.config;
     this.uiState = state.uiState;
+    
+    // Reinicializar controladores si es necesario
+    if (this.config && this.itemData && this.uiState) {
+      this.initializeControllers();
+    }
+    
     this.requestUpdate();
   }
   /**
@@ -70,24 +77,59 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   }
 
   /**
+   * Inicializa los controladores de drag y resize.
+   */
+  private initializeControllers() {
+    // Limpiar controladores existentes
+    this.cleanupControllers();
+    
+    // Inicializar nuevos controladores
+    this.dragController = new DragController({
+      itemData: this.itemData!,
+      config: this.config!,
+      zoomValue: this.uiState!.zoomValue || 1,
+      renderRoot: this.renderRoot,
+      rowIndex: this.rowIndex,
+      dragHorizontalOnly: this.dragHorizontalOnly,
+    });
+    this.dragController.addDragEvents(this);
+    this.dragController.onDrop(this.handleDrop);
+
+    this.resizeController = new ResizeController({
+      itemData: this.itemData!,
+      config: this.config!,
+      zoomValue: this.uiState!.zoomValue || 1,
+      renderRoot: this.renderRoot,
+      rowIndex: this.rowIndex,
+    });
+    // Agregar eventos de resize
+    this.resizeController.addResizeEvents(this);
+    // Inicializar callbacks una sola vez
+    this.resizeController.onResize(this.handleResize);
+    this.resizeController.onResizeEnd(this.handleResizeEnd);
+  }
+
+  /**
+   * Limpia los controladores existentes.
+   */
+  private cleanupControllers() {
+    if (this.dragController) {
+      this.dragController.removeDragEvents(this);
+    }
+    if (this.resizeController) {
+      this.resizeController.removeResizeEvents(this);
+      this.resizeController.cleanup();
+    }
+  }
+
+  /**
    * Inicializa los controladores de drag y resize al conectar el componente.
    */
   connectedCallback() {
     super.connectedCallback();
     // Inicializa controladores solo si hay datos
     if (this.config && this.itemData && this.uiState) {
-      this.dragController = new DragController({
-        itemData: this.itemData,
-        config: this.config,
-        zoomValue: this.uiState.zoomValue || 1,
-        renderRoot: this.renderRoot,
-        rowIndex: this.rowIndex,
-        dragHorizontalOnly: this.dragHorizontalOnly,
-      });
-      this.dragController.addDragEvents(this);
-      this.dragController.onDrop(this.handleDrop);
-
-      this.resizeController = new ResizeController();
+      this.initializeControllers();
     }
   }
 
@@ -95,7 +137,7 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
    * Limpia los eventos al desconectar el componente.
    */
   disconnectedCallback() {
-    this.dragController?.removeDragEvents(this);
+    this.cleanupControllers();
     super.disconnectedCallback();
   }
 
@@ -136,15 +178,52 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   };
 
   /**
-   * Inicia el resize y actualiza el ancho visual.
+   * Maneja el resize y actualiza el estado interno.
    */
-  onResizeStart = (e: PointerEvent) => {
-    if (!this.resizeController) return;
-    this.resizeController.onResizeStart({ e, initialWidth: this.width });
-    this.resizeController.onResize((newWidth) => {
-      this.style.setProperty("--pg-floatbox-width", `${newWidth}px`);
-      this.width = newWidth;
-    });
+  private handleResize = ({ newWidth, newEndUnix }: { newWidth: number; newEndUnix: number }) => {
+    // Marcar que estamos en proceso de resize
+    this.isResizing = true;
+    
+    // Actualizar estado interno
+    this.width = newWidth;
+    
+    // Los datos y DOM ya fueron actualizados por el ResizeController
+    // No hacer requestUpdate durante resize para evitar re-render
+  };
+
+  /**
+   * Maneja el fin del resize.
+   */
+  private handleResizeEnd = () => {
+    this.isResizing = false;
+    // Forzar re-render para sincronizar con los datos actualizados
+    this.requestUpdate();
+  };
+
+  /**
+   * Inicia el resize cuando se hace click en el handle.
+   */
+  private onResizeStart = (e: PointerEvent) => {
+    if (!this.resizeController) {
+      console.warn("ResizeController not initialized");
+      return;
+    }
+    
+    // Verificar si ya hay un resize activo
+    if (this.resizeController.isActive()) {
+      console.warn("Resize already active, ignoring new resize start");
+      return;
+    }
+    
+    e.stopPropagation(); // Evitar que se active el drag
+    
+    const floatbox = this.renderRoot.querySelector(".pg-floatbox") as HTMLElement;
+    if (!floatbox) {
+      console.warn("Floatbox element not found");
+      return;
+    }
+    
+    this.resizeController.startResize(e, floatbox);
   };
 
   /**
@@ -152,27 +231,32 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
    */
   render() {
     if (!this.config || !this.itemData || !this.uiState) return html``;
-    const { left, top, width, height } = calculateFloatboxPosition({
-      config: this.config,
-      itemData: this.itemData,
-      rowIndex: this.rowIndex,
-      zoomValue: this.uiState.zoomValue || 1,
-    });
-    this.width = width;
-    this.height = height;
-    this.top = top;
-    this.left = left;
+    
+    // Solo recalcular posición si no estamos en proceso de resize
+    if (!this.isResizing) {
+      const { left, top, width, height } = calculateFloatboxPosition({
+        config: this.config,
+        itemData: this.itemData,
+        rowIndex: this.rowIndex,
+        zoomValue: this.uiState.zoomValue || 1,
+      });
+      this.width = width;
+      this.height = height;
+      this.top = top;
+      this.left = left;
+    }
+    
     const color = this.itemData?.color || "red";
-    this.updateStyles(left, top, width, height, color);
+    this.updateStyles(this.left, this.top, this.width, this.height, color);
     return html`
       <div
         class="pg-floatbox"
-        style="touch-action: none; position: relative; width: ${width}px; height: ${height}px;"
+        style="touch-action: none; position: relative; width: ${this.width}px; height: ${this.height}px;"
       >
         ${this.itemData?.foo}
         <div
           class="resize-handle"
-          style="position: absolute; right: 0; top: 0; width: 8px; height: 100%; cursor: ew-resize; z-index: 10; background: rgba(255, 0, 0, 0.5);"
+          style="position: absolute; left: ${this.width - 8}px; top: 0; width: 8px; height: 100%; cursor: ew-resize; z-index: 10; background: rgba(255, 0, 0, 0.5);"
           @pointerdown=${this.onResizeStart}
         ></div>
       </div>

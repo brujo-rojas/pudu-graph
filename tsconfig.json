@@ -10,14 +10,12 @@
       "DOM.Iterable"
     ],
     "skipLibCheck": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     // "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "strict": true,
-    "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true,
     "paths": {
       "@/*": [
         "./src/*"
@@ -28,7 +26,7 @@
     },
     "outDir": "dist",
     "declaration": true,
-    "declarationDir": "dist",
+    "declarationDir": "dist/types",
     "emitDeclarationOnly": false,
     "rootDir": "src"
   },
