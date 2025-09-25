@@ -180,12 +180,22 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   /**
    * Maneja el resize y actualiza el estado interno.
    */
-  private handleResize = ({ newWidth, newEndUnix }: { newWidth: number; newEndUnix: number }) => {
+  private handleResize = ({ newWidth, newEndUnix, newStartUnix, newLeft }: { 
+    newWidth: number; 
+    newEndUnix?: number; 
+    newStartUnix?: number; 
+    newLeft?: number; 
+  }) => {
     // Marcar que estamos en proceso de resize
     this.isResizing = true;
     
     // Actualizar estado interno
     this.width = newWidth;
+    
+    // Si es resize desde la izquierda, actualizar también la posición
+    if (newLeft !== undefined) {
+      this.left = newLeft;
+    }
     
     // Los datos y DOM ya fueron actualizados por el ResizeController
     // No hacer requestUpdate durante resize para evitar re-render
@@ -203,7 +213,7 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   /**
    * Inicia el resize cuando se hace click en el handle.
    */
-  private onResizeStart = (e: PointerEvent) => {
+  private onResizeStart = (e: PointerEvent, side: 'left' | 'right' = 'right') => {
     if (!this.resizeController) {
       console.warn("ResizeController not initialized");
       return;
@@ -223,7 +233,7 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
       return;
     }
     
-    this.resizeController.startResize(e, floatbox);
+    this.resizeController.startResize(e, floatbox, side);
   };
 
   /**
@@ -254,10 +264,19 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
         style="touch-action: none; position: relative; width: ${this.width}px; height: ${this.height}px;"
       >
         ${this.itemData?.foo}
+        
+        <!-- Handle de resize izquierdo -->
+        <div
+          class="resize-handle-left"
+          style="position: absolute; left: 0; top: 0; width: 8px; height: 100%; cursor: ew-resize; z-index: 10; background: rgba(0, 255, 0, 0.5);"
+          @pointerdown=${(e: PointerEvent) => this.onResizeStart(e, 'left')}
+        ></div>
+        
+        <!-- Handle de resize derecho -->
         <div
           class="resize-handle"
           style="position: absolute; left: ${this.width - 8}px; top: 0; width: 8px; height: 100%; cursor: ew-resize; z-index: 10; background: rgba(255, 0, 0, 0.5);"
-          @pointerdown=${this.onResizeStart}
+          @pointerdown=${(e: PointerEvent) => this.onResizeStart(e, 'right')}
         ></div>
       </div>
     `;

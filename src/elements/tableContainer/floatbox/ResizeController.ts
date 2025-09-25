@@ -11,6 +11,7 @@ interface ResizeControllerParams {
   zoomValue: number;
   renderRoot: RenderRoot;
   rowIndex?: number;
+  resizeSide?: 'left' | 'right';
 }
 
 interface ResizeStartParams {
@@ -20,7 +21,9 @@ interface ResizeStartParams {
 
 interface ResizeCallbackParams {
   newWidth: number;
-  newEndUnix: number;
+  newEndUnix?: number;
+  newStartUnix?: number;
+  newLeft?: number;
 }
 
 /**
@@ -32,7 +35,9 @@ class ResizeController {
   private isResizing = false;
   private resizeStartX = 0;
   private initialWidth = 0;
+  private initialLeft = 0;
   private activePointerId: number | null = null;
+  private resizeSide: 'left' | 'right' = 'right';
 
   // Configuración y datos
   private itemData: PGItemData;
@@ -51,6 +56,7 @@ class ResizeController {
     this.zoomValue = params.zoomValue;
     this.renderRoot = params.renderRoot;
     this.rowIndex = params.rowIndex ?? 0;
+    this.resizeSide = params.resizeSide ?? 'right';
   }
 
   /** Activa los eventos de resize sobre el componente host. */
@@ -64,17 +70,34 @@ class ResizeController {
   }
 
   /** Inicia el resize y agrega listeners globales. */
-  public startResize(event: PointerEvent, floatbox: HTMLElement) {
+  public startResize(event: PointerEvent, floatbox: HTMLElement, side?: 'left' | 'right') {
     if (!event || !floatbox) {
       console.warn("Invalid parameters for startResize");
       return;
+    }
+
+    // Actualizar el lado de resize si se especifica
+    if (side) {
+      this.resizeSide = side;
     }
 
     event.stopPropagation();
     this.isResizing = true;
     this.resizeStartX = event.clientX;
     this.initialWidth = floatbox.getBoundingClientRect().width;
+    // Obtener la posición actual del host desde las CSS custom properties
+    const host = (this.renderRoot as any).host as HTMLElement;
+    const currentLeft = host.style.getPropertyValue("--pg-floatbox-left");
+    this.initialLeft = parseFloat(currentLeft) || 0;
     this.activePointerId = event.pointerId;
+    
+    console.log('Start resize:', { 
+      side: this.resizeSide, 
+      initialLeft: this.initialLeft, 
+      initialWidth: this.initialWidth,
+      currentLeft,
+      host: host.tagName 
+    });
     
     try {
       (event.target as HTMLElement).setPointerCapture(event.pointerId);
@@ -106,17 +129,43 @@ class ResizeController {
     if (!this.isResizing) return;
     
     const deltaX = e.clientX - this.resizeStartX;
-    const rawWidth = this.initialWidth + deltaX;
-    const newWidth = this.calculateConstrainedWidth(rawWidth);
     
-    // Calcular nueva fecha de fin
-    const newEndUnix = this.calculateNewEndUnix(newWidth);
-    
-    // Actualizar DOM directamente
-    this.updateDOM(newWidth);
-    
-    // Notificar el cambio
-    this.notifyResize({ newWidth, newEndUnix });
+    if (this.resizeSide === 'left') {
+      // Resize desde la izquierda
+      const rawLeft = this.initialLeft + deltaX;
+      const rawWidth = this.initialWidth - deltaX;
+      const newLeft = this.calculateConstrainedLeft(rawLeft);
+      const newWidth = this.calculateConstrainedWidth(rawWidth);
+      const newStartUnix = this.calculateNewStartUnix(newLeft);
+      
+      console.log('Left resize:', { 
+        deltaX, 
+        initialLeft: this.initialLeft, 
+        initialWidth: this.initialWidth,
+        rawLeft, 
+        rawWidth, 
+        newLeft, 
+        newWidth, 
+        newStartUnix 
+      });
+      
+      // Actualizar DOM para resize izquierdo
+      this.updateDOMLeft(newLeft, newWidth);
+      
+      // Notificar el cambio
+      this.notifyResize({ newWidth, newStartUnix, newLeft });
+    } else {
+      // Resize desde la derecha (lógica original)
+      const rawWidth = this.initialWidth + deltaX;
+      const newWidth = this.calculateConstrainedWidth(rawWidth);
+      const newEndUnix = this.calculateNewEndUnix(newWidth);
+      
+      // Actualizar DOM para resize derecho
+      this.updateDOM(newWidth);
+      
+      // Notificar el cambio
+      this.notifyResize({ newWidth, newEndUnix });
+    }
     
     e.preventDefault();
   };
@@ -144,15 +193,32 @@ class ResizeController {
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
     
     const deltaX = e.clientX - this.resizeStartX;
-    const rawWidth = this.initialWidth + deltaX;
-    const newWidth = this.calculateConstrainedWidth(rawWidth);
-    const newEndUnix = this.calculateNewEndUnix(newWidth);
     
-    // Actualizar el modelo de datos
-    this.itemData.endUnix = newEndUnix;
-    
-    // Notificar el cambio final
-    this.notifyResize({ newWidth, newEndUnix });
+    if (this.resizeSide === 'left') {
+      // Resize desde la izquierda
+      const rawLeft = this.initialLeft + deltaX;
+      const rawWidth = this.initialWidth - deltaX;
+      const newLeft = this.calculateConstrainedLeft(rawLeft);
+      const newWidth = this.calculateConstrainedWidth(rawWidth);
+      const newStartUnix = this.calculateNewStartUnix(newLeft);
+      
+      // Actualizar el modelo de datos
+      this.itemData.startUnix = newStartUnix;
+      
+      // Notificar el cambio final
+      this.notifyResize({ newWidth, newStartUnix, newLeft });
+    } else {
+      // Resize desde la derecha (lógica original)
+      const rawWidth = this.initialWidth + deltaX;
+      const newWidth = this.calculateConstrainedWidth(rawWidth);
+      const newEndUnix = this.calculateNewEndUnix(newWidth);
+      
+      // Actualizar el modelo de datos
+      this.itemData.endUnix = newEndUnix;
+      
+      // Notificar el cambio final
+      this.notifyResize({ newWidth, newEndUnix });
+    }
     
     // Notificar que terminó el resize
     this.onResizeEndCallback?.();
@@ -170,6 +236,18 @@ class ResizeController {
     const { dayWidth = 30 } = this.config.options;
     const durationSeconds = (newWidth / (dayWidth * this.zoomValue)) * 86400; // 86400 = segundos por día
     return this.itemData.startUnix + durationSeconds;
+  }
+
+  /** Calcula la nueva fecha de inicio basada en la nueva posición left. */
+  private calculateNewStartUnix(newLeft: number): number {
+    if (!this.config?.options) {
+      console.warn("Invalid config for calculateNewStartUnix");
+      return this.itemData?.startUnix || 0;
+    }
+
+    const { startUnix = 0, dayWidth = 30 } = this.config.options;
+    const leftOffsetSeconds = (newLeft / (dayWidth * this.zoomValue)) * 86400; // 86400 = segundos por día
+    return startUnix + leftOffsetSeconds;
   }
 
   /** Calcula el ancho máximo permitido basado en el timeline. */
@@ -202,6 +280,45 @@ class ResizeController {
     return Math.max(minWidth, Math.min(maxWidth, rawWidth));
   }
 
+  /** Calcula la posición mínima permitida para resize izquierdo. */
+  private calculateMinLeft(): number {
+    if (!this.config?.options) {
+      console.warn("Invalid config for calculateMinLeft");
+      return 0;
+    }
+
+    const { startUnix = 0, dayWidth = 30 } = this.config.options;
+    const minLeft = 0; // No puede ir más allá del inicio del timeline
+    
+    return minLeft;
+  }
+
+  /** Calcula la posición máxima permitida para resize izquierdo. */
+  private calculateMaxLeft(): number {
+    if (!this.config?.options || !this.itemData?.endUnix) {
+      console.warn("Invalid config or itemData for calculateMaxLeft");
+      return this.initialLeft;
+    }
+
+    const { startUnix = 0, dayWidth = 30 } = this.config.options;
+    const maxDurationSeconds = this.itemData.endUnix - startUnix;
+    const maxLeft = (maxDurationSeconds / 86400) * (dayWidth * this.zoomValue) - 10; // -10 para ancho mínimo
+    
+    return Math.max(0, maxLeft);
+  }
+
+  /** Aplica límites a la posición left para resize izquierdo. */
+  private calculateConstrainedLeft(rawLeft: number): number {
+    if (typeof rawLeft !== 'number' || isNaN(rawLeft)) {
+      console.warn("Invalid rawLeft for calculateConstrainedLeft");
+      return this.initialLeft;
+    }
+
+    const minLeft = this.calculateMinLeft();
+    const maxLeft = this.calculateMaxLeft();
+    return Math.max(minLeft, Math.min(maxLeft, rawLeft));
+  }
+
   /** Obtiene el elemento floatbox del renderRoot. */
   private getFloatBoxChildElement(renderRoot: RenderRoot): HTMLElement | null {
     return renderRoot.querySelector(".pg-floatbox") as HTMLElement;
@@ -210,6 +327,11 @@ class ResizeController {
   /** Obtiene el handle de resize del renderRoot. */
   private getResizeHandleElement(renderRoot: RenderRoot): HTMLElement | null {
     return renderRoot.querySelector(".resize-handle") as HTMLElement;
+  }
+
+  /** Obtiene el handle de resize izquierdo del renderRoot. */
+  private getLeftResizeHandleElement(renderRoot: RenderRoot): HTMLElement | null {
+    return renderRoot.querySelector(".resize-handle-left") as HTMLElement;
   }
 
   /** Actualiza el DOM durante el resize. */
@@ -234,6 +356,32 @@ class ResizeController {
       }
     } catch (error) {
       console.warn("Failed to update DOM during resize:", error);
+    }
+  }
+
+  /** Actualiza el DOM durante el resize desde la izquierda. */
+  private updateDOMLeft(newLeft: number, newWidth: number) {
+    if (typeof newLeft !== 'number' || isNaN(newLeft) || typeof newWidth !== 'number' || isNaN(newWidth) || newWidth < 0) {
+      console.warn("Invalid parameters for updateDOMLeft:", { newLeft, newWidth });
+      return;
+    }
+
+    const host = (this.renderRoot as any).host as HTMLElement;
+    const leftHandle = this.getLeftResizeHandleElement(this.renderRoot);
+    
+    try {
+      // Actualizar CSS custom properties del host
+      if (host) {
+        host.style.setProperty("--pg-floatbox-left", `${newLeft}px`);
+        host.style.setProperty("--pg-floatbox-width", `${newWidth}px`);
+      }
+      
+      // Actualizar posición del handle izquierdo (siempre en 0 para el handle izquierdo)
+      if (leftHandle) {
+        leftHandle.style.left = `0px`;
+      }
+    } catch (error) {
+      console.warn("Failed to update DOM during left resize:", error);
     }
   }
 
