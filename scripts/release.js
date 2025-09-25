@@ -23,7 +23,7 @@ function exec(command, options = {}) {
   }
 }
 
-function checkGitStatus() {
+function checkGitStatus(allowDevelop = false) {
   console.log('\n📋 Verificando estado de Git...');
   
   try {
@@ -36,15 +36,25 @@ function checkGitStatus() {
       process.exit(1);
     }
     
-    // Verificar si estamos en la rama main/master
+    // Verificar si estamos en una rama válida
     const branch = execSync('git branch --show-current', { encoding: 'utf8' }).trim();
-    if (branch !== 'main' && branch !== 'master') {
-      console.log(`⚠️  Estás en la rama '${branch}', no en main/master`);
-      console.log('💡 Cambia a la rama principal antes de hacer release.');
+    const validBranches = ['main', 'master'];
+    
+    if (allowDevelop) {
+      validBranches.push('develop');
+    }
+    
+    if (!validBranches.includes(branch)) {
+      console.log(`⚠️  Estás en la rama '${branch}', no en una rama válida para release`);
+      console.log(`💡 Ramas válidas: ${validBranches.join(', ')}`);
+      if (allowDevelop) {
+        console.log('💡 Para publicar desde develop, usa: npm run release:develop');
+      }
       process.exit(1);
     }
     
-    console.log('✅ Estado de Git OK');
+    console.log(`✅ Estado de Git OK - Rama: ${branch}`);
+    return branch;
   } catch (error) {
     console.error('❌ Error verificando Git:', error.message);
     process.exit(1);
@@ -68,7 +78,7 @@ function build() {
   console.log('✅ Build completado');
 }
 
-function version(type) {
+function version(type, isDevelop = false) {
   console.log(`\n📦 Incrementando versión ${type}...`);
   
   const validTypes = ['patch', 'minor', 'major'];
@@ -78,13 +88,27 @@ function version(type) {
     process.exit(1);
   }
   
-  exec(`npm version ${type} --no-git-tag-version`);
-  
-  // Leer la nueva versión
-  const newPackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
-  console.log(`✅ Versión actualizada a: ${newPackageJson.version}`);
-  
-  return newPackageJson.version;
+  if (isDevelop) {
+    // Para develop, usar pre-release versioning
+    const currentVersion = packageJson.version;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const developVersion = `${currentVersion}-develop.${timestamp}`;
+    
+    // Actualizar package.json directamente
+    const newPackageJson = { ...packageJson, version: developVersion };
+    writeFileSync(packageJsonPath, JSON.stringify(newPackageJson, null, 2) + '\n');
+    
+    console.log(`✅ Versión de desarrollo actualizada a: ${developVersion}`);
+    return developVersion;
+  } else {
+    exec(`npm version ${type} --no-git-tag-version`);
+    
+    // Leer la nueva versión
+    const newPackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+    console.log(`✅ Versión actualizada a: ${newPackageJson.version}`);
+    
+    return newPackageJson.version;
+  }
 }
 
 function createGitTag(version) {
@@ -95,7 +119,7 @@ function createGitTag(version) {
   console.log(`✅ Tag v${version} creado`);
 }
 
-function publishToNpm(tag = 'latest') {
+function publishToNpm(tag = 'latest', isDevelop = false) {
   console.log(`\n📤 Publicando a npm con tag: ${tag}`);
   
   // Verificar si estamos logueados en npm
@@ -107,8 +131,14 @@ function publishToNpm(tag = 'latest') {
     process.exit(1);
   }
   
-  exec(`npm publish --tag ${tag}`);
-  console.log(`✅ Publicado exitosamente con tag: ${tag}`);
+  if (isDevelop) {
+    console.log('🔧 Publicando versión de desarrollo...');
+    exec(`npm publish --tag develop`);
+    console.log(`✅ Publicado exitosamente con tag: develop`);
+  } else {
+    exec(`npm publish --tag ${tag}`);
+    console.log(`✅ Publicado exitosamente con tag: ${tag}`);
+  }
 }
 
 function pushToGit() {
@@ -135,14 +165,20 @@ function main() {
   const tag = args[1] || 'latest';
   const skipTests = args.includes('--skip-tests');
   const skipGit = args.includes('--skip-git');
+  const isDevelop = args.includes('--develop') || args[0] === 'develop';
   
   console.log('🚀 Iniciando proceso de release...');
   console.log(`📋 Tipo: ${type}`);
   console.log(`🏷️  Tag: ${tag}`);
+  console.log(`🔧 Modo develop: ${isDevelop ? 'SÍ' : 'NO'}`);
   
   // Validaciones
   if (!skipGit) {
-    checkGitStatus();
+    const currentBranch = checkGitStatus(isDevelop);
+    if (isDevelop && currentBranch !== 'develop') {
+      console.log('⚠️  Para publicar desde develop, debes estar en la rama develop');
+      process.exit(1);
+    }
   }
   
   if (!skipTests) {
@@ -151,19 +187,20 @@ function main() {
   
   // Proceso de release
   build();
-  const newVersion = version(type);
+  const newVersion = version(type, isDevelop);
   
-  if (!skipGit) {
+  if (!skipGit && !isDevelop) {
     createGitTag(newVersion);
   }
   
-  publishToNpm(tag);
+  publishToNpm(tag, isDevelop);
   
-  if (!skipGit) {
+  if (!skipGit && !isDevelop) {
     pushToGit();
   }
   
-  showReleaseSummary(newVersion, tag);
+  const finalTag = isDevelop ? 'develop' : tag;
+  showReleaseSummary(newVersion, finalTag);
 }
 
 // Manejo de argumentos de ayuda
@@ -175,18 +212,26 @@ Uso:
   node scripts/release.js [tipo] [tag] [opciones]
 
 Argumentos:
-  tipo    Tipo de versión: patch, minor, major (default: patch)
+  tipo    Tipo de versión: patch, minor, major, develop (default: patch)
   tag     Tag de npm: latest, beta, alpha (default: latest)
 
 Opciones:
   --skip-tests    Saltar ejecución de tests
   --skip-git      Saltar operaciones de Git
+  --develop       Modo desarrollo (publica con tag 'develop')
   --help, -h      Mostrar esta ayuda
 
 Ejemplos:
+  # Releases normales (desde main/master)
   node scripts/release.js patch
   node scripts/release.js minor beta
   node scripts/release.js major --skip-tests
+  
+  # Releases de desarrollo (desde develop)
+  node scripts/release.js develop
+  node scripts/release.js patch --develop
+  
+  # Otros ejemplos
   node scripts/release.js patch latest --skip-git
 `);
   process.exit(0);

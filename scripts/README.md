@@ -13,6 +13,11 @@ npm run release:minor    # Incrementa minor (0.0.1 → 0.1.0)
 npm run release:major    # Incrementa major (0.0.1 → 1.0.0)
 npm run release:beta     # Release beta (patch + tag beta)
 
+# Release de desarrollo (desde rama develop)
+npm run release:develop  # Release desde develop con tag 'develop'
+npm run release:dev      # Release patch desde develop
+npm run release:develop-simple  # Script simple para develop
+
 # Release simple (Bash)
 npm run release:simple   # Ejecuta ./scripts/simple-release.sh patch latest
 ```
@@ -22,13 +27,44 @@ npm run release:simple   # Ejecuta ./scripts/simple-release.sh patch latest
 ```bash
 # Publicación directa
 npm run publish          # Build + publish a npm
-npm run publish:beta    # Build + publish con tag beta
+npm run publish:beta     # Build + publish con tag beta
+npm run publish:develop  # Build + publish con tag develop
 npm run pre-release      # Alias para publish:beta
 npm run post-release     # Alias para publish
+npm run dev-release      # Alias para publish:develop
 
 # Verificación antes de publicar
 npm run publish:check    # Build + dry-run (ver qué se publicará)
 npm run publish:dry-run  # Solo dry-run
+```
+
+## 🔧 Scripts de Desarrollo
+
+### Para trabajar desde la rama `develop`:
+
+```bash
+# Cambiar a rama develop
+git checkout develop
+
+# Release de desarrollo (recomendado)
+npm run release:develop  # Release completo desde develop
+
+# Release simple de desarrollo
+npm run release:develop-simple  # Script bash simple
+
+# Solo publicar (sin versionar)
+npm run publish:develop  # Build + publish con tag develop
+npm run dev-release      # Alias para publish:develop
+```
+
+### Instalación de versiones de desarrollo:
+
+```bash
+# Instalar la última versión de desarrollo
+npm install pudu-graph@develop
+
+# Instalar una versión específica de desarrollo
+npm install pudu-graph@0.0.1-develop.2024-09-25T02-30-15
 ```
 
 ### Scripts de Versionado Manual
@@ -122,6 +158,21 @@ npm run release:patch  # o minor/major según corresponda
 npm run release:beta
 # o
 npm run pre-release
+```
+
+### Para Releases de Desarrollo:
+```bash
+# 1. Cambiar a rama develop
+git checkout develop
+
+# 2. Commit cambios
+git add .
+git commit -m "feat: nueva funcionalidad en desarrollo"
+
+# 3. Release de desarrollo
+npm run release:develop
+# o
+npm run release:develop-simple
 ```
 
 ### Para Publicación Manual:
