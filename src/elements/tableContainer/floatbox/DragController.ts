@@ -117,7 +117,10 @@ class DragController {
     this.isDragging = true;
     this.activePointerId = event.pointerId;
     (event.target as HTMLElement).setPointerCapture(event.pointerId);
-    this.dragElement = this.createDragElement({ floatbox, color: this.itemData?.color || "red" });
+    this.dragElement = this.createDragElement({
+      floatbox,
+      color: this.itemData?.color || "red",
+    });
     document.body.appendChild(this.dragElement);
     this.updateDragElementPosition({
       dragElement: this.dragElement,
@@ -204,7 +207,11 @@ class DragController {
     // Actualiza el modelo de datos para reflejar la nueva posición
     const oldStart = this.itemData.startUnix || 0;
     const oldEnd = this.itemData.endUnix || 0;
-    const newStart = leftToUnix({ config: this.config, left: newLeft, zoomValue: this.zoomValue });
+    const newStart = leftToUnix({
+      config: this.config,
+      left: newLeft,
+      zoomValue: this.zoomValue,
+    });
     this.itemData.startUnix = newStart;
     this.itemData.endUnix = oldEnd + (newStart - oldStart);
     // Recalcula el ancho en base a la nueva posición
@@ -220,11 +227,21 @@ class DragController {
 
   /** Actualiza la posición del elemento visual de drag. */
   private updateDragElementPosition(params: DragPositionParams) {
-    const { dragElement, x, y, dragOffsetX, dragOffsetY, dragHorizontalOnly, fixedTop } = params;
+    const {
+      dragElement,
+      x,
+      y,
+      dragOffsetX,
+      dragOffsetY,
+      dragHorizontalOnly,
+      fixedTop,
+    } = params;
     if (!dragElement) return;
     const left = x - dragOffsetX;
     dragElement.style.left = `${left}px`;
-    dragElement.style.top = dragHorizontalOnly ? `${fixedTop}px` : `${y - dragOffsetY}px`;
+    dragElement.style.top = dragHorizontalOnly
+      ? `${fixedTop}px`
+      : `${y - dragOffsetY}px`;
   }
 
   /** Obtiene el elemento floatbox del renderRoot. */

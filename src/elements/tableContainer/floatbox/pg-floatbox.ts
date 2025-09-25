@@ -21,8 +21,8 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   private top = 0;
   private left = 0;
 
-  private dragController: DragController | null = null;
-  private resizeController: ResizeController | null = null;
+  private dragController!: DragController;
+  private resizeController!: ResizeController;
 
   @property({ type: Object })
   itemData: PGItemData | null = null;
@@ -43,10 +43,12 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     super();
   }
 
+  /**
+   * Actualiza el estado global del componente.
+   */
   stateChanged(state: RootState): void {
     this.config = state.config;
     this.uiState = state.uiState;
-
     this.requestUpdate();
   }
   /**
@@ -67,82 +69,105 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     this.style.setProperty("--pg-floatbox-left", `${left}px`);
   }
 
+  /**
+   * Inicializa los controladores de drag y resize al conectar el componente.
+   */
   connectedCallback() {
     super.connectedCallback();
-    if (!this.config || !this.itemData || !this.uiState) return;
+    // Inicializa controladores solo si hay datos
+    if (this.config && this.itemData && this.uiState) {
+      this.dragController = new DragController({
+        itemData: this.itemData,
+        config: this.config,
+        zoomValue: this.uiState.zoomValue || 1,
+        renderRoot: this.renderRoot,
+        rowIndex: this.rowIndex,
+        dragHorizontalOnly: this.dragHorizontalOnly,
+      });
+      this.dragController.addDragEvents(this);
+      this.dragController.onDrop(this.handleDrop);
 
-    this.dragController = new DragController({
-      itemData: this.itemData,
-      config: this.config,
-      zoomValue: this.uiState?.zoomValue || 1,
-      renderRoot: this.renderRoot,
-    });
-
-    this.resizeController = new ResizeController({
-    });
-    this.dragController?.addDragEvents(this);
+      this.resizeController = new ResizeController();
+    }
   }
 
+  /**
+   * Limpia los eventos al desconectar el componente.
+   */
   disconnectedCallback() {
     this.dragController?.removeDragEvents(this);
     super.disconnectedCallback();
   }
 
-  initDrag() {
-    if (!this.config || !this.itemData || !this.uiState || !this.dragController)
-      return;
-
-    this.dragController.onDrop(({ x, y, newLeft, date, width }) => {
-      console.log(
-        "Drop en:",
-        x,
-        y,
-        "item:",
-        this.itemData,
-        "left:",
-        newLeft,
-        "fecha/hora:",
-        date?.toISOString()
-      );
-
+  /**
+   * Callback para manejar el drop del dragController.
+   */
+  private handleDrop = ({
+    x,
+    y,
+    newLeft,
+    date,
+    width,
+  }: {
+    x: number;
+    y: number;
+    newLeft?: number;
+    date?: Date;
+    width?: number;
+  }) => {
+    console.log(
+      "Drop en:",
+      x,
+      y,
+      "item:",
+      this.itemData,
+      "left:",
+      newLeft,
+      "fecha/hora:",
+      date?.toISOString()
+    );
+    if (typeof newLeft === "number" && typeof width === "number") {
       this.style.setProperty("--pg-floatbox-left", `${newLeft}px`);
       this.style.setProperty("--pg-floatbox-width", `${width}px`);
-
+      this.width = width;
+      this.left = newLeft;
       this.requestUpdate();
-    });
-  }
+    }
+  };
 
+  /**
+   * Inicia el resize y actualiza el ancho visual.
+   */
   onResizeStart = (e: PointerEvent) => {
-    this.resizeController?.onResizeStart({ e, initialWidth: this.width });
-    this.resizeController?.onResize((newWidth) => {
+    if (!this.resizeController) return;
+    this.resizeController.onResizeStart({ e, initialWidth: this.width });
+    this.resizeController.onResize((newWidth) => {
       this.style.setProperty("--pg-floatbox-width", `${newWidth}px`);
       this.width = newWidth;
     });
   };
 
+  /**
+   * Renderiza el componente floatbox.
+   */
   render() {
     if (!this.config || !this.itemData || !this.uiState) return html``;
-
     const { left, top, width, height } = calculateFloatboxPosition({
-      config: this.config || {},
-      itemData: this.itemData || {},
+      config: this.config,
+      itemData: this.itemData,
       rowIndex: this.rowIndex,
-      zoomValue: this.uiState?.zoomValue || 1,
+      zoomValue: this.uiState.zoomValue || 1,
     });
-    this.initDrag();
-
     this.width = width;
     this.height = height;
     this.top = top;
     this.left = left;
-
     const color = this.itemData?.color || "red";
     this.updateStyles(left, top, width, height, color);
     return html`
       <div
         class="pg-floatbox"
-        style="touch-action: none; position: relative;"
-        style=" width: ${width}px; height: ${height}px; "
+        style="touch-action: none; position: relative; width: ${width}px; height: ${height}px;"
       >
         ${this.itemData?.foo}
         <div

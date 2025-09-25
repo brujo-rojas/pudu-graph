@@ -1,4 +1,3 @@
-
 interface ResizeStartParams {
   e: PointerEvent;
   initialWidth: number;
