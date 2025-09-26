@@ -327,7 +327,13 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
   };
 
   stateChanged(state: RootState) {
-    this.mouseoverLightState = state.mousePosition;
+    // Fix: Only assign compatible properties to mouseoverLightState
+    this.mouseoverLightState.isVisible = state.mousePosition.isVisible;
+    this.mouseoverLightState.x = state.mousePosition.x;
+    this.mouseoverLightState.y = state.mousePosition.y;
+    // Do not assign tableRect if not compatible
+    // this.mouseoverLightState.tableRect = null; // or handle as needed
+
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;

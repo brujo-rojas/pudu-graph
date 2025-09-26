@@ -3,8 +3,8 @@ import { DAY_SECONDS } from "@/utils/CONSTANTS";
 import { DAY_WIDTH } from "@/utils/DEFAULTS";
 import { getFloatboxHeight, getItemHeight } from "@/utils/floatboxHeight";
 
-// TODO: Performance Optimization - Cache para cálculos frecuentes
-// const calculationCache = new Map<string, { left: number; top: number; width: number; height: number }>();
+// Cache para cálculos frecuentes de posición
+const calculationCache = new Map<string, { left: number; top: number; width: number; height: number }>();
 
 interface FloatboxValidationParams {
   config: PGConfig;
@@ -115,7 +115,7 @@ function calcTop({ rowIndex, overlapLevel, itemHeight, floatboxHeight }: TopPara
 }
 
 /**
- * Calcula la posición y tamaño del floatbox
+ * Calcula la posición y tamaño del floatbox con cache
  */
 export function calculateFloatboxPosition({
   config,
@@ -146,18 +146,46 @@ export function calculateFloatboxPosition({
   const itemHeight = getItemHeight(config);
   const floatboxHeight = getFloatboxHeight(config);
 
+  // Generar clave de cache
+  const cacheKey = generateCacheKey(
+    startUnix,
+    itemStart,
+    itemEnd,
+    dayWidth,
+    zoomValue,
+    rowIndex,
+    overlapLevel,
+    itemHeight,
+    floatboxHeight,
+    false // isIcon = false para floatbox
+  );
+
+  // Verificar cache
+  if (calculationCache.has(cacheKey)) {
+    return calculationCache.get(cacheKey)!;
+  }
+
+  // Calcular resultado
   const result = {
     left: calcLeft({ startUnix, itemStart, dayWidth, zoom: zoomValue }),
     width: calcWidth({ itemStart, itemEnd, dayWidth, zoom: zoomValue }),
-    height: floatboxHeight, // Altura calculada basada en configuración
+    height: floatboxHeight,
     top: calcTop({ rowIndex, overlapLevel, itemHeight, floatboxHeight }),
   };
-  
+
+  // Limitar el tamaño del cache para evitar memory leaks
+  if (calculationCache.size > 1000) {
+    const firstKey = calculationCache.keys().next().value;
+    calculationCache.delete(firstKey);
+  }
+
+  // Cachear resultado
+  calculationCache.set(cacheKey, result);
   return result;
 }
 
 /**
- * Calcula la posición y tamaño del float icon (evento puntual)
+ * Calcula la posición y tamaño del float icon (evento puntual) con cache
  */
 export function calculateFloatIconPosition({
   config,
@@ -187,6 +215,25 @@ export function calculateFloatIconPosition({
   const itemHeight = getItemHeight(config);
   const floatboxHeight = getFloatboxHeight(config);
 
+  // Generar clave de cache
+  const cacheKey = generateCacheKey(
+    startUnix,
+    itemStart,
+    undefined, // endUnix no existe para iconos
+    dayWidth,
+    zoomValue,
+    rowIndex,
+    overlapLevel,
+    itemHeight,
+    floatboxHeight,
+    true // isIcon = true para iconos
+  );
+
+  // Verificar cache
+  if (calculationCache.has(cacheKey)) {
+    return calculationCache.get(cacheKey)!;
+  }
+
   // Para iconos, centrar verticalmente en la fila, ignorando overlapLevel
   const rowTop = rowIndex * itemHeight;
   const iconTop = rowTop + (itemHeight - floatboxHeight) / 2; // Centrar verticalmente
@@ -197,85 +244,46 @@ export function calculateFloatIconPosition({
     height: floatboxHeight,
     top: iconTop,
   };
-  
+
+  // Limitar el tamaño del cache para evitar memory leaks
+  if (calculationCache.size > 1000) {
+    const firstKey = calculationCache.keys().next().value;
+    calculationCache.delete(firstKey);
+  }
+
+  // Cachear resultado
+  calculationCache.set(cacheKey, result);
   return result;
 }
 
-// TODO: Performance Optimization - Implementar cache para cálculos frecuentes
-// function generateCacheKey(
-//   startUnix: number,
-//   itemStart: number,
-//   itemEnd: number,
-//   dayWidth: number,
-//   zoomValue: number,
-//   rowIndex: number,
-//   overlapLevel: number,
-//   flexBoxHeight: number
-// ): string {
-//   return `${startUnix}-${itemStart}-${itemEnd}-${dayWidth}-${zoomValue}-${rowIndex}-${overlapLevel}-${flexBoxHeight}`;
-// }
-//
-// export function clearCalculationCache(): void {
-//   calculationCache.clear();
-// }
-//
-// // Versión con cache:
-// export function calculateFloatboxPositionWithCache({
-//   config,
-//   itemData,
-//   rowIndex = 0,
-//   zoomValue,
-// }: {
-//   config: PGConfig;
-//   itemData: PGItemData;
-//   rowIndex?: number;
-//   zoomValue: number;
-// }): { left: number; top: number; width: number; height: number } {
-//   if (!isValidFloatbox({ config, itemData, zoomValue }))
-//     return { left: 0, top: 0, width: 0, height: 0 };
-//
-//   const {
-//     startUnix = 0,
-//     dayWidth = DAY_WIDTH,
-//     flexBoxHeight = FLOATBOX_HEIGHT,
-//   } = config.options;
-//   const {
-//     startUnix: itemStart = 0,
-//     endUnix: itemEnd = 0,
-//     overlapLevel = 0,
-//   } = itemData;
-//
-//   // Generar clave de cache
-//   const cacheKey = generateCacheKey(
-//     startUnix,
-//     itemStart,
-//     itemEnd,
-//     dayWidth,
-//     zoomValue,
-//     rowIndex,
-//     overlapLevel,
-//     flexBoxHeight
-//   );
-//
-//   // Verificar cache
-//   if (calculationCache.has(cacheKey)) {
-//     return calculationCache.get(cacheKey)!;
-//   }
-//
-//   // Calcular y cachear resultado
-//   const result = {
-//     left: calcLeft({ startUnix, itemStart, dayWidth, zoom: zoomValue }),
-//     width: calcWidth({ itemStart, itemEnd, dayWidth, zoom: zoomValue }),
-//     height: flexBoxHeight,
-//     top: calcTop({ rowIndex, overlapLevel, flexBoxHeight }),
-//   };
-//
-//   // Limitar el tamaño del cache para evitar memory leaks
-//   if (calculationCache.size > 1000) {
-//     const firstKey = calculationCache.keys().next().value;
-//     calculationCache.delete(firstKey);
-//   }
-//
-//   calculationCache.set(cacheKey, result);
-//   return result;
-// }
+/**
+ * Genera una clave única para el cache basada en los parámetros de cálculo
+ */
+function generateCacheKey(
+  startUnix: number,
+  itemStart: number,
+  itemEnd: number | undefined,
+  dayWidth: number,
+  zoomValue: number,
+  rowIndex: number,
+  overlapLevel: number,
+  itemHeight: number,
+  floatboxHeight: number,
+  isIcon: boolean
+): string {
+  return `${startUnix}-${itemStart}-${itemEnd || 'icon'}-${dayWidth}-${zoomValue}-${rowIndex}-${overlapLevel}-${itemHeight}-${floatboxHeight}-${isIcon}`;
+}
+
+/**
+ * Limpia el cache de cálculos
+ */
+export function clearCalculationCache(): void {
+  calculationCache.clear();
+}
+
+/**
+ * Obtiene el tamaño actual del cache
+ */
+export function getCacheSize(): number {
+  return calculationCache.size;
+}

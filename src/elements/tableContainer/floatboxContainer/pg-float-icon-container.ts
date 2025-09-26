@@ -128,12 +128,6 @@ export class PuduGraphFloatIconContainer extends connect(store)(LitElement) {
       // Usar el índice del item módulo el número máximo de niveles disponibles
       const overlapLevel = itemIndex % maxLevels;
       
-      // Log simplificado solo para verificar datos
-      if (rowIndex === 2 && itemIndex === 0) {
-        console.log('🎯 Icon Created:', item.label, '|', 
-          'Date:', item.startUnix ? new Date(item.startUnix * 1000).toISOString().split('T')[0] : 'N/A');
-      }
-      
       return html`
         <pg-float-icon
           .itemData="${item}"

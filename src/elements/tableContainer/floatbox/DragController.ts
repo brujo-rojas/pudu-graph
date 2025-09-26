@@ -27,6 +27,7 @@ export class DragController extends BaseController {
   private activePointerId: number | null = null;
   private dragElement: HTMLElement | null = null;
   private dragHorizontalOnly: boolean;
+  private animationFrameId: number | null = null;
 
   // Callback para notificar drop
   private onDropCallback: ((params: DropCallbackParams) => void) | null = null;
@@ -97,10 +98,6 @@ export class DragController extends BaseController {
     this.isDragging = true;
     this.activePointerId = event.pointerId;
 
-    console.log('🎯 Drag Start:', this.itemData?.label, '|', 
-      'Date:', new Date(this.itemData?.startUnix * 1000).toISOString().split('T')[0],
-      '| TableLeft:', Math.round(originalLeft), 'px');
-
     (event.target as HTMLElement).setPointerCapture(event.pointerId);
     this.dragElement = this.createDragElement({
       floatbox,
@@ -122,9 +119,9 @@ export class DragController extends BaseController {
 
   /** Agrega listeners globales para el drag. */
   private addPointerEvents() {
-    window.addEventListener("pointermove", this.onPointerMove);
-    window.addEventListener("pointerup", this.onPointerUp);
-    window.addEventListener("pointercancel", this.onPointerCancel);
+    window.addEventListener("pointermove", this.onPointerMove, { passive: true });
+    window.addEventListener("pointerup", this.onPointerUp, { passive: true });
+    window.addEventListener("pointercancel", this.onPointerCancel, { passive: true });
   }
 
   /** Elimina listeners globales para el drag. */
@@ -139,14 +136,21 @@ export class DragController extends BaseController {
     if (e.pointerId !== this.activePointerId) return;
     if (!this.isDragging || !this.dragElement) return;
     
-    this.updateDragElementPosition({
-      dragElement: this.dragElement,
-      x: e.clientX,
-      y: e.clientY,
-      dragOffsetX: this.dragOffsetX,
-      dragOffsetY: this.dragOffsetY,
-      dragHorizontalOnly: this.dragHorizontalOnly,
-      fixedTop: this.fixedTop,
+    // Usar requestAnimationFrame para optimizar el rendimiento
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+    
+    this.animationFrameId = requestAnimationFrame(() => {
+      this.updateDragElementPosition({
+        dragElement: this.dragElement!,
+        x: e.clientX,
+        y: e.clientY,
+        dragOffsetX: this.dragOffsetX,
+        dragOffsetY: this.dragOffsetY,
+        dragHorizontalOnly: this.dragHorizontalOnly,
+        fixedTop: this.fixedTop,
+      });
     });
     e.preventDefault();
   };
@@ -166,6 +170,13 @@ export class DragController extends BaseController {
   /** Handler para pointercancel: cancela el drag. */
   private onPointerCancel = (e: PointerEvent) => {
     if (e.pointerId !== this.activePointerId) return;
+    
+    // Limpiar animation frame pendiente
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    
     this.isDragging = false;
     this.activePointerId = null;
     if (this.dragElement) {
@@ -179,6 +190,13 @@ export class DragController extends BaseController {
   private finishDrag(e: PointerEvent) {
     const floatbox = this.getFloatBoxChildElement(this.renderRoot);
     if (!floatbox || !this.dragElement) return;
+    
+    // Limpiar animation frame pendiente
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
     
     // Calcular el delta en píxeles de pantalla
@@ -197,14 +215,6 @@ export class DragController extends BaseController {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    // Debug: rastrear cálculo de posición
-    console.log('🎯 Drag Calculation:', this.itemData?.label, '|',
-      'StartTableLeft:', Math.round(this.dragStartTableLeft), 'px |',
-      'DeltaPixels:', Math.round(deltaPixels), 'px |',
-      'DeltaTablePixels:', Math.round(deltaTablePixels), 'px |',
-      'NewLeft:', Math.round(newLeft), 'px |',
-      'Zoom:', this.zoomValue);
-    
     // Calcula la nueva posición sin modificar el objeto original
     const oldStart = this.itemData.startUnix || 0;
     const oldEnd = this.itemData.endUnix || 0;
@@ -214,10 +224,6 @@ export class DragController extends BaseController {
       zoomValue: this.zoomValue,
     });
     
-    console.log('🎯 Date Calculation:', this.itemData?.label, '|',
-      'OldStart:', new Date(oldStart * 1000).toISOString().split('T')[0], '|',
-      'NewStart:', new Date(newStart * 1000).toISOString().split('T')[0], '|',
-      'Delta:', Math.round((newStart - oldStart) / 86400), 'days');
     const newEnd = oldEnd + (newStart - oldStart);
     // Recalcula el ancho en base a la nueva posición
     const updatedItemData = { ...this.itemData, startUnix: newStart, endUnix: newEnd };

@@ -119,10 +119,6 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
     // Para iconos, solo actualizamos startUnix
     const newStartUnix = params.newStartUnix ?? (params.date ? Math.floor(params.date.getTime() / 1000) : this.itemData.startUnix);
     
-    console.log('🎯 Drag End:', this.itemData.label, '|',
-      'Original:', new Date(this.itemData.startUnix * 1000).toISOString().split('T')[0], '|',
-      'New:', new Date(newStartUnix * 1000).toISOString().split('T')[0]);
-    
     // Actualizar datos
     const updatedItem = { 
       ...this.itemData, 
@@ -178,22 +174,13 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
       const itemIndex = iconData.findIndex(existingItem => existingItem.id === item.id);
       
       if (itemIndex !== -1) {
-        console.log('🎯 Store Update:', item.label || 'Sin label', '|', 
-          'ID:', item.id, '|',
-          'Row:', rowIndex, 'Index:', itemIndex, '|',
-          'OldDate:', new Date(iconData[itemIndex].startUnix * 1000).toISOString().split('T')[0], '|',
-          'NewDate:', new Date(item.startUnix * 1000).toISOString().split('T')[0]);
         
         store.dispatch(updateRowIcon({
           rowIndex,
           itemIndex,
           itemData: { ...item }
         }));
-      } else {
-        console.warn('🎯 Store Update Failed: No se encontró el item con ID', item.id, 'en row', rowIndex);
       }
-    } else {
-      console.warn('🎯 Store Update Failed: Item sin ID o iconData no disponible', item);
     }
   }
 
