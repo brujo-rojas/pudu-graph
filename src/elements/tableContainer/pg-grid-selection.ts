@@ -47,7 +47,7 @@ export class PGGridSelection extends connect(store)(LitElement) {
     }
 
     const { dayWidth = DAY_WIDTH, itemHeight = 60 } = this.config.options;
-    const { zoomValue = 1 } = this.config.uiState || {};
+    const zoomValue = 1; // TODO: obtener del estado de UI
 
     return this.gridSelection.selections.map((selection: any) => {
       const { rowIndex, dayIndex } = selection;
@@ -76,7 +76,7 @@ export class PGGridSelection extends connect(store)(LitElement) {
     }
 
     return html`
-      ${positions.map(position => html`
+      ${positions.map((position: any) => html`
         <div 
           class="selection-box active"
           style="
