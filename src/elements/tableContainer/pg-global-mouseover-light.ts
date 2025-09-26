@@ -3,7 +3,9 @@ import { customElement, state } from "lit/decorators.js";
 import { connect } from "pwa-helpers";
 import { store } from "@state/store";
 import type { RootState } from "@state/store";
-import { showMouseoverLight, updateMouseoverLightPosition, hideMouseoverLight, setTableRect } from "@state/mouseoverLightSlice";
+import { showMouseoverLight, updateMouseoverLightPosition, hideMouseoverLight, setTableRect, updateMouseoverInfo } from "@state/mouseoverLightSlice";
+import { DAY_SECONDS } from "@/utils/CONSTANTS";
+import { DAY_WIDTH } from "@/utils/DEFAULTS";
 
 @customElement("pg-global-mouseover-light")
 export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
@@ -21,14 +23,23 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
     tableRect: null
   };
 
+  @state()
+  private config: any = null;
+
+  @state()
+  private data: any[] = [];
+
+  @state()
+  private uiState: any = null;
+
   private tableElement: HTMLElement | null = null;
   private verticalLine: HTMLElement | null = null;
   private horizontalLine: HTMLElement | null = null;
+  private gridHoverElement: HTMLElement | null = null;
 
   connectedCallback() {
     super.connectedCallback();
     
-    console.log('🎨 Global Mouseover Light Connected');
     
     // Agregar listeners globales
     document.addEventListener('mousemove', this.handleGlobalMouseMove);
@@ -63,7 +74,6 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
         this.tableElement = tableContainer.shadowRoot.querySelector('pg-grid-container') as HTMLElement;
         
         if (this.tableElement) {
-          console.log('✅ Grid container found, creating mouseover lines inside');
           this.createMouseoverLines();
           this.updateTableRect();
         }
@@ -71,7 +81,6 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
     }
     
     if (!this.tableElement) {
-      console.log('❌ Grid container NOT found - trying again in 500ms');
       setTimeout(() => {
         this.findTableElement();
       }, 500);
@@ -90,7 +99,7 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
       background-color: #007bff;
       opacity: 0.6;
       pointer-events: none;
-      z-index: 1;
+      z-index: 0;
       display: none;
     `;
     
@@ -102,31 +111,122 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
       background-color: #007bff;
       opacity: 0.6;
       pointer-events: none;
-      z-index: 1;
+      z-index: 0;
       display: none;
+    `;
+    
+    // Crear el elemento de hover del grid
+    const gridHover = document.createElement('div');
+    gridHover.className = 'grid-hover-element';
+    gridHover.style.cssText = `
+      position: absolute;
+      width: calc(var(--pg-cell-width, 30px) - 2px);
+      height: calc(var(--pg-item-height, 60px) - 2px);
+      background-color: rgba(0, 123, 255, 0.2);
+      border: 2px solid #007bff;
+      pointer-events: none;
+      z-index: 0;
+      display: none;
+      transition: all 0.1s ease;
     `;
     
     this.tableElement.appendChild(verticalLine);
     this.tableElement.appendChild(horizontalLine);
+    this.tableElement.appendChild(gridHover);
     
     this.verticalLine = verticalLine;
     this.horizontalLine = horizontalLine;
+    this.gridHoverElement = gridHover;
     
-    console.log('✅ Mouseover lines created inside grid container');
   };
 
   private updateTableRect = () => {
     if (this.tableElement) {
       const rect = this.tableElement.getBoundingClientRect();
-      console.log('📐 Table rect updated:', rect);
       store.dispatch(setTableRect(rect));
     } else {
-      console.log('❌ Cannot update rect - no table element');
     }
   };
 
+  private calculateDayAndItem(event: MouseEvent, rect: DOMRect) {
+    if (!this.config || !this.data) return null;
+
+    const relativeX = event.clientX - rect.left;
+    const relativeY = event.clientY - rect.top;
+
+    // Calcular el día basado en la posición X
+    const { startUnix, dayWidth = DAY_WIDTH } = this.config.options;
+    const zoomValue = this.uiState?.zoomValue || 1;
+    
+    // Fórmula inversa de calcLeft: ((itemStart - startUnix) / DAY_SECONDS) * dayWidth * zoom
+    const dayOffset = (relativeX / (dayWidth * zoomValue)) * DAY_SECONDS;
+    const targetUnix = startUnix + dayOffset;
+    const dayIndex = Math.floor(dayOffset / DAY_SECONDS);
+    
+    // Calcular el item del sidebar basado en la posición Y
+    const itemHeight = this.config.options.itemHeight || 60;
+    const itemIndex = Math.floor(relativeY / itemHeight);
+    
+    // Obtener información del día
+    const dayDate = new Date(targetUnix * 1000);
+    const dayInfo = {
+      dayIndex,
+      targetUnix,
+      date: dayDate.toISOString().slice(0, 10),
+      dayOfWeek: dayDate.toLocaleDateString('es-ES', { weekday: 'long' }),
+      dayOfMonth: dayDate.getDate(),
+      month: dayDate.toLocaleDateString('es-ES', { month: 'long' })
+    };
+
+    // Obtener información del item
+    const itemInfo = {
+      itemIndex,
+      rowData: this.data[itemIndex] || null,
+      rowLabel: this.data[itemIndex]?.label || `Fila ${itemIndex + 1}`,
+      isWithinBounds: itemIndex >= 0 && itemIndex < this.data.length
+    };
+
+    return { dayInfo, itemInfo, relativeX, relativeY };
+  }
+
+  private calculateGridHoverPosition(event: MouseEvent, rect: DOMRect) {
+    if (!this.config || !this.data) return null;
+
+    const relativeX = event.clientX - rect.left;
+    const relativeY = event.clientY - rect.top;
+
+    // Calcular el día completo (número absoluto)
+    const { startUnix, dayWidth = DAY_WIDTH } = this.config.options;
+    const zoomValue = this.uiState?.zoomValue || 1;
+    
+    const dayOffset = (relativeX / (dayWidth * zoomValue)) * DAY_SECONDS;
+    const dayIndex = Math.floor(dayOffset / DAY_SECONDS);
+    
+    // Calcular el item completo (número absoluto)
+    const itemHeight = this.config.options.itemHeight || 60;
+    const itemIndex = Math.floor(relativeY / itemHeight);
+    
+    // Verificar que esté dentro de los límites
+    const totalDays = Math.ceil((this.config.options.endUnix - this.config.options.startUnix) / DAY_SECONDS);
+    const isWithinBounds = dayIndex >= 0 && dayIndex < totalDays && itemIndex >= 0 && itemIndex < this.data.length;
+    
+    if (!isWithinBounds) return null;
+
+    // Calcular posiciones absolutas del grid
+    const gridX = dayIndex * (dayWidth * zoomValue);
+    const gridY = itemIndex * itemHeight;
+
+    return {
+      dayIndex,
+      itemIndex,
+      gridX,
+      gridY,
+      isWithinBounds
+    };
+  }
+
   private handleGlobalMouseMove = (event: MouseEvent) => {
-    if (!this.tableElement || !this.verticalLine || !this.horizontalLine) {
+    if (!this.tableElement || !this.verticalLine || !this.horizontalLine || !this.gridHoverElement) {
       return;
     }
     
@@ -153,11 +253,31 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
       this.horizontalLine.style.top = `${relativeY}px`;
       this.horizontalLine.style.width = `${rect.width}px`;
       
-      console.log('🎯 Lines positioned:', { relativeX, relativeY, rect });
+      // Calcular y mostrar información del día e item
+      const positionInfo = this.calculateDayAndItem(event, rect);
+      if (positionInfo) {
+        const { dayInfo, itemInfo } = positionInfo;
+        
+        // Actualizar el store con la información
+        store.dispatch(updateMouseoverInfo({ dayInfo, itemInfo }));
+      }
+
+      // Calcular y posicionar el grid hover
+      const gridHoverInfo = this.calculateGridHoverPosition(event, rect);
+      if (gridHoverInfo && gridHoverInfo.isWithinBounds) {
+        this.gridHoverElement.style.display = 'block';
+        this.gridHoverElement.style.left = `${gridHoverInfo.gridX}px`;
+        this.gridHoverElement.style.top = `${gridHoverInfo.gridY}px`;
+      } else {
+        this.gridHoverElement.style.display = 'none';
+      }
     } else {
-      // Ocultar las líneas
+      // Ocultar las líneas y el grid hover
       this.verticalLine.style.display = 'none';
       this.horizontalLine.style.display = 'none';
+      if (this.gridHoverElement) {
+        this.gridHoverElement.style.display = 'none';
+      }
     }
   };
 
@@ -166,10 +286,23 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
       this.verticalLine.style.display = 'none';
       this.horizontalLine.style.display = 'none';
     }
+    
+    if (this.gridHoverElement) {
+      this.gridHoverElement.style.display = 'none';
+    }
+    
+    // Limpiar la información del store
+    store.dispatch(updateMouseoverInfo({ 
+      dayInfo: null, 
+      itemInfo: null 
+    }));
   };
 
   stateChanged(state: RootState) {
-    this.mouseoverLightState = state.mouseoverLight;
+    this.mouseoverLightState = state.mousePosition;
+    this.config = state.config;
+    this.data = state.data;
+    this.uiState = state.uiState;
     
     // Actualizar clase show basada en el estado
     if (this.mouseoverLightState.isVisible) {
@@ -178,7 +311,6 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
       this.classList.remove('show');
     }
     
-    console.log('🎨 Global Mouseover Light State Changed:', this.mouseoverLightState);
     
     this.requestUpdate();
   }

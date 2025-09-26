@@ -39,6 +39,12 @@
 
         .day-title {
         }
+
+        &.highlighted {
+          background-color: var(--pg-header-highlight-color, #007bff) !important;
+          color: white;
+          transition: background-color 0.2s ease;
+        }
       }
     }
   }

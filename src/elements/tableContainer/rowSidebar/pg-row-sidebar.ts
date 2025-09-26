@@ -12,15 +12,21 @@ export class PGRowSidebar extends connect(store)(LitElement) {
   private config: PGConfig | null = null;
   // private data: any[] = [];
   private uiState: PGUIState = {};
+  private mousePosition: any = null;
 
   stateChanged(state: RootState): void {
     this.config = state.config;
     // this.data = state.data;
     this.uiState = state.uiState;
+    this.mousePosition = state.mousePosition;
+    this.requestUpdate();
   }
 
   @property({ type: Object })
   public itemRow!: PGRowData;
+
+  @property({ type: Number })
+  public rowIndex: number = 0;
 
   private renderColumnInput(column: PGSidebarColumn, value: string): TemplateResult | null {
     if (!column) return null;
@@ -69,13 +75,17 @@ export class PGRowSidebar extends connect(store)(LitElement) {
     //store.dispatch(setRows([...store.getState().data]));
   }
 
+  private isRowHighlighted(): boolean {
+    return this.mousePosition?.itemInfo?.itemIndex === this.rowIndex;
+  }
+
   render(): TemplateResult | null {
     if (!this.itemRow) {
       return html`<div class="pg-row-sidebar-container">No data</div>`;
     }
 
     return html`
-      <div class="pg-row-sidebar-container">
+      <div class="pg-row-sidebar-container ${this.isRowHighlighted() ? 'highlighted' : ''}">
         <div class="row-title">
           <span> ${this.itemRow.label || 'Untitled'} </span>
         </div>

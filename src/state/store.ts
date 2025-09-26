@@ -4,7 +4,7 @@ import dataReducer from "./dataSlice";
 import uiStateReducer from "./uiStateSlice";
 import tooltipReducer from "./tooltipSlice";
 import floatDetailReducer from "./floatDetailSlice";
-import mouseoverLightReducer from "./mouseoverLightSlice";
+import mousePositionReducer from "./mouseoverLightSlice";
 
 export const store = configureStore({
   reducer: {
@@ -13,7 +13,7 @@ export const store = configureStore({
     uiState: uiStateReducer,
     tooltip: tooltipReducer,
     floatDetail: floatDetailReducer,
-    mouseoverLight: mouseoverLightReducer,
+    mousePosition: mousePositionReducer,
   },
 });
 

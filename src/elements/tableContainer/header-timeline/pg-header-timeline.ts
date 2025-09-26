@@ -16,11 +16,13 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
   private config: PGConfig | null = null;
   private data: any[] = [];
   private uiState: PGUIState | null = null;
+  private mousePosition: any = null;
 
   stateChanged(state: RootState): void {
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;
+    this.mousePosition = state.mousePosition;
     this.requestUpdate();
   }
 
@@ -100,6 +102,13 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
     return sortedMonths;
   }
 
+  private isDayHighlighted(day: HeaderItem): boolean {
+    if (!this.mousePosition?.dayInfo) return false;
+    
+    // Comparar por fecha ISO (YYYY-MM-DD)
+    return this.mousePosition.dayInfo.date === day.localDate;
+  }
+
   render() {
     const headerItems = this.getHeaderItems();
 
@@ -114,7 +123,7 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
               <div class="days-container">
                 ${month.days.map(
                   (day) => html`
-                    <div class="day-header">
+                    <div class="day-header ${this.isDayHighlighted(day) ? 'highlighted' : ''}">
                       <div class="day-title">${day.dayNumber}</div>
                     </div>
                   `

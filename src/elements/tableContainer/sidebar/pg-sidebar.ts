@@ -28,8 +28,8 @@ export class PuduGraphSidebar extends connect(store)(LitElement) {
   render() {
     return html`
       ${this.data.map(
-        (item: any) => html`
-          <pg-row-sidebar .itemRow=${item}> </pg-row-sidebar>
+        (item: any, index: number) => html`
+          <pg-row-sidebar .itemRow=${item} .rowIndex=${index}> </pg-row-sidebar>
         `
       )}
     `;
