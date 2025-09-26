@@ -1,6 +1,6 @@
 {
   "name": "pudu-graph",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "main": "dist/pudu-graph.js",
   "module": "dist/pudu-graph.js",
