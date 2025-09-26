@@ -6,6 +6,8 @@
   position: absolute;
   top: 0;
   left: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
 
   background-size: var(--pg-cell-width) var(--pg-item-height);
   background-image: linear-gradient(

@@ -7,13 +7,13 @@ import "./corner/pg-corner";
 import "./floatboxContainer/pg-floatbox-container";
 import "./floatbox/pg-global-tooltip";
 import "./floatbox/pg-global-float-detail";
+import "./pg-global-mouseover-light";
 import "./gridBackground/pg-grid-background";
 import "./gridContainer/pg-grid-container";
 import "./header-inputs/pg-header-inputs";
 import "./header-timeline/pg-header-timeline";
 import "./header/pg-header";
 import "./horizontalPlotsContainer/pg-horizontal-plots-container";
-import "./mouseoverLight/pg-mouseover-light";
 import "./scrollableContainer/pg-scrollable-container";
 import "./selectionLight/pg-selection-light";
 import "./sidebar/pg-sidebar";
@@ -30,6 +30,8 @@ export class PuduGraphTableContainer extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     
+    console.log('🏗️ Table Container Connected - DOM should be ready now');
+    
     // Crear el tooltip global fuera del shadow DOM
     if (!document.querySelector('pg-global-tooltip')) {
       const tooltip = document.createElement('pg-global-tooltip');
@@ -40,6 +42,12 @@ export class PuduGraphTableContainer extends LitElement {
     if (!document.querySelector('pg-global-float-detail')) {
       const floatDetail = document.createElement('pg-global-float-detail');
       document.body.appendChild(floatDetail);
+    }
+    
+    // Crear el mouseover light global fuera del shadow DOM
+    if (!document.querySelector('pg-global-mouseover-light')) {
+      const mouseoverLight = document.createElement('pg-global-mouseover-light');
+      document.body.appendChild(mouseoverLight);
     }
   }
 
@@ -61,7 +69,6 @@ export class PuduGraphTableContainer extends LitElement {
 
         <pg-grid-container>
           <pg-grid-background></pg-grid-background>
-          <pg-mouseover-light></pg-mouseover-light>
           <pg-selection-light></pg-selection-light>
           <pg-floatbox-container></pg-floatbox-container>
         </pg-grid-container>
