@@ -22,6 +22,20 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       external: ['lit', 'react', 'react-dom', '@lit-labs/react'],
+      output: {
+        // Optimizaciones para Vercel
+        manualChunks: undefined,
+        inlineDynamicImports: false,
+      },
     },
+    // Optimizaciones para producción
+    minify: 'terser',
+    sourcemap: false,
+    target: 'es2020',
+    chunkSizeWarningLimit: 1000,
+  },
+  // Configuración para Vercel
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
   },
 });
