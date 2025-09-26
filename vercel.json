@@ -9,18 +9,10 @@
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/pudu-graph.js",
-      "dest": "/pudu-graph.js"
-    },
-    {
-      "src": "/react/(.*)",
-      "dest": "/react/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!pudu-graph\\.js|react/).*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
