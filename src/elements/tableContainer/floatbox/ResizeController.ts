@@ -205,7 +205,9 @@ export class ResizeController extends BaseController {
     const resizeHandle = this.getResizeHandleElement();
     
     if (host) {
+      // Usar variables CSS apropiadas para floatbox o float-icon
       host.style.setProperty("--pg-floatbox-width", `${newWidth}px`);
+      host.style.setProperty("--pg-float-icon-width", `${newWidth}px`);
     }
     
     if (resizeHandle) {
@@ -222,8 +224,11 @@ export class ResizeController extends BaseController {
     const leftHandle = this.getLeftResizeHandleElement();
     
     if (host) {
+      // Usar variables CSS apropiadas para floatbox o float-icon
       host.style.setProperty("--pg-floatbox-left", `${newLeft}px`);
       host.style.setProperty("--pg-floatbox-width", `${newWidth}px`);
+      host.style.setProperty("--pg-float-icon-left", `${newLeft}px`);
+      host.style.setProperty("--pg-float-icon-width", `${newWidth}px`);
     }
     
     if (leftHandle) {
@@ -267,6 +272,7 @@ export class ResizeController extends BaseController {
     
     const computedStyle = getComputedStyle(floatbox);
     const widthFromCSS = parseFloat(computedStyle.getPropertyValue('--pg-floatbox-width')) || 
+                         parseFloat(computedStyle.getPropertyValue('--pg-float-icon-width')) ||
                          parseFloat(computedStyle.width) || 
                          floatbox.getBoundingClientRect().width;
     
@@ -277,7 +283,8 @@ export class ResizeController extends BaseController {
 
   private getCurrentLeftPosition(): number {
     const host = this.getHostElement();
-    const currentLeft = host?.style.getPropertyValue("--pg-floatbox-left");
+    const currentLeft = host?.style.getPropertyValue("--pg-floatbox-left") || 
+                       host?.style.getPropertyValue("--pg-float-icon-left");
     return parseFloat(currentLeft || "0") || 0;
   }
 

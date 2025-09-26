@@ -5,6 +5,7 @@ import type { PGConfig } from "../../types";
 
 import "./corner/pg-corner";
 import "./floatboxContainer/pg-floatbox-container";
+import "./floatboxContainer/pg-float-icon-container";
 import "./floatbox/pg-global-tooltip";
 import "./floatbox/pg-global-float-detail";
 import "./pg-global-mouseover-light";
@@ -71,6 +72,7 @@ export class PuduGraphTableContainer extends LitElement {
           <pg-grid-background></pg-grid-background>
           <pg-selection-light></pg-selection-light>
           <pg-floatbox-container></pg-floatbox-container>
+          <pg-float-icon-container></pg-float-icon-container>
         </pg-grid-container>
       </pg-scrollable-container>
     `;

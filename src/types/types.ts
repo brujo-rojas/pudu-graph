@@ -82,11 +82,12 @@ export interface PGRowData {
   tooltip?: string; // Tooltip de la fila
   values: { [key: string]: any }; // Valores asociados a la fila, puede ser un objeto con múltiples campos
   rowData: PGItemData[]; // Datos de la fila, array de objetos con fecha y valor
+  iconData?: PGItemData[]; // Datos de iconos (eventos puntuales), array de objetos con fecha
 }
 
 export interface PGItemData {
   startUnix: number; // Timestamp de inicio en milisegundos
-  endUnix: number; // Timestamp de fin en milisegundos
+  endUnix?: number; // Timestamp de fin en milisegundos (opcional para iconos)
   value?: number; // Valor asociado a la fecha
   [key: string]: any; // Otros campos adicionales
   color?: string; // Color asociado al valor

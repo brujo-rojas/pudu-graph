@@ -48,6 +48,21 @@ function isValidFloatbox({
   );
 }
 
+function isValidFloatIcon({
+  config,
+  itemData,
+  zoomValue,
+}: FloatboxValidationParams): boolean {
+  return !!(
+    config &&
+    itemData &&
+    zoomValue &&
+    config.options &&
+    itemData.startUnix
+    // No requiere endUnix para iconos
+  );
+}
+
 function calcLeft({
   startUnix,
   itemStart,
@@ -135,6 +150,47 @@ export function calculateFloatboxPosition({
     left: calcLeft({ startUnix, itemStart, dayWidth, zoom: zoomValue }),
     width: calcWidth({ itemStart, itemEnd, dayWidth, zoom: zoomValue }),
     height: floatboxHeight, // Altura calculada basada en configuración
+    top: calcTop({ rowIndex, overlapLevel, itemHeight, floatboxHeight }),
+  };
+  
+  return result;
+}
+
+/**
+ * Calcula la posición y tamaño del float icon (evento puntual)
+ */
+export function calculateFloatIconPosition({
+  config,
+  itemData,
+  rowIndex = 0,
+  zoomValue,
+}: {
+  config: PGConfig;
+  itemData: PGItemData;
+  rowIndex?: number;
+  zoomValue: number;
+}): { left: number; top: number; width: number; height: number } {
+  
+  if (!isValidFloatIcon({ config, itemData, zoomValue })) {
+    return { left: 0, top: 0, width: 0, height: 0 };
+  }
+
+  const {
+    startUnix = 0,
+    dayWidth = DAY_WIDTH,
+  } = config.options;
+  const {
+    startUnix: itemStart = 0,
+    overlapLevel = 0,
+  } = itemData;
+
+  const itemHeight = getItemHeight(config);
+  const floatboxHeight = getFloatboxHeight(config);
+
+  const result = {
+    left: calcLeft({ startUnix, itemStart, dayWidth, zoom: zoomValue }),
+    width: floatboxHeight, // Para iconos, width = height (círculo)
+    height: floatboxHeight,
     top: calcTop({ rowIndex, overlapLevel, itemHeight, floatboxHeight }),
   };
   

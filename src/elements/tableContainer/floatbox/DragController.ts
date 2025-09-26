@@ -200,7 +200,8 @@ export class DragController extends BaseController {
 
   /** Obtiene el elemento floatbox del renderRoot. */
   private getFloatBoxChildElement(renderRoot: RenderRoot): HTMLElement | null {
-    return renderRoot.querySelector(".pg-floatbox") as HTMLElement;
+    // Buscar tanto floatbox como float-icon
+    return renderRoot.querySelector(".pg-floatbox, .pg-float-icon") as HTMLElement;
   }
 
   /** Crea el elemento visual para el drag. */
