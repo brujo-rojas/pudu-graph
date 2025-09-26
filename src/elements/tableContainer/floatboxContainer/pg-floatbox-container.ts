@@ -172,7 +172,6 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
   }
 
   render() {
-    
     if (!this.config || !this.data.length) {
       return html``;
     }

@@ -1,6 +1,6 @@
 {
   "name": "pudu-graph",
-  "version": "0.0.5",
+  "version": "0.0.7",
   "type": "module",
   "main": "dist/pudu-graph.js",
   "module": "dist/pudu-graph.js",
@@ -8,7 +8,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && npm run copy-react-wrapper && npm run generate-types",
+    "vercel-build": "BUILD_TARGET=standalone npm run build && npm run copy-static",
+    "netlify-build": "BUILD_TARGET=standalone npm run build && npm run copy-static",
     "copy-react-wrapper": "mkdir -p dist/react && cp src/react/PuduGraphReact.tsx dist/react/PuduGraphReact.tsx",
+    "copy-static": "cp -r public/* dist/ 2>/dev/null || true && npm run create-demo-html",
+    "create-demo-html": "sed 's|/src/pudu-graph.ts|/pudu-graph.js|g' index.html > dist/index.html",
     "generate-types": "tsc --emitDeclarationOnly --declaration --declarationDir dist",
     "preview": "vite preview",
     "version:patch": "node scripts/release.js patch",
