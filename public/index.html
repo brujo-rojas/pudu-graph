@@ -9,7 +9,7 @@
     <meta name="keywords" content="timeline, chart, interactive, lit, typescript, web components" />
     
     <!-- Preload critical resources -->
-    <link rel="preload" href="/dist/pudu-graph.js" as="script" />
+    <link rel="preload" href="/pudu-graph.js" as="script" />
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -80,7 +80,7 @@
       });
       
       // Load the main application
-      import('/dist/pudu-graph.js').catch((error) => {
+      import('/pudu-graph.js').catch((error) => {
         console.error('Failed to load pudu-graph:', error);
         document.getElementById('app').innerHTML = `
           <div class="error">

@@ -11,6 +11,14 @@
   ],
   "routes": [
     {
+      "src": "/pudu-graph.js",
+      "dest": "/pudu-graph.js"
+    },
+    {
+      "src": "/react/(.*)",
+      "dest": "/react/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
@@ -39,7 +47,16 @@
       ]
     },
     {
-      "source": "/dist/(.*)",
+      "source": "/pudu-graph.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/react/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
