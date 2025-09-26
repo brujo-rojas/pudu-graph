@@ -3,6 +3,7 @@ import { customElement, property } from "lit/decorators.js";
 import { connect } from "pwa-helpers";
 import { store } from "@state/store";
 import type { RootState } from "@state/store";
+import { updateRowItem } from "@state/dataSlice";
 import type { PGConfig, PGRowData, PGItemData } from "@/types";
 import { DragController } from "./DragController";
 import { ResizeController } from "./ResizeController";
@@ -223,11 +224,62 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     this.requestUpdate();
     
     // Emitir evento de cambio
-    this.dispatchEvent(new CustomEvent('item-updated', {
+    const event = new CustomEvent('item-updated', {
       detail: { item: updatedItem, rowIndex: this.rowIndex },
       bubbles: true
-    }));
+    });
+    
+    // Intentar llamar directamente al contenedor
+    let container = this.closest('pg-floatbox-container') as any;
+    
+    // Si no se encuentra, buscar en el document
+    if (!container) {
+      container = document.querySelector('pg-floatbox-container') as any;
+    }
+    
+    if (container && container.handleItemUpdated) {
+      container.handleItemUpdated(event);
+    } else {
+      // Actualizar el store directamente
+      this.updateStoreDirectly(updatedItem, this.rowIndex);
+      
+      // También emitir el evento por si acaso
+      this.dispatchEvent(event);
+    }
   };
+
+  /**
+   * Actualiza el store directamente
+   */
+  private updateStoreDirectly(item: PGItemData, rowIndex: number): void {
+    // Obtener el estado actual del store
+    const state = store.getState();
+    const rowData = state.data[rowIndex]?.rowData;
+    
+    if (rowData) {
+      // Buscar el item en los datos
+      const itemIndex = rowData.findIndex(existingItem => {
+        // Si tienen el mismo foo (identificador único)
+        if (existingItem.foo === item.foo) return true;
+        
+        // Si tienen el mismo color y startUnix similar (para items sin foo)
+        if (existingItem.color === item.color && 
+            Math.abs((existingItem.startUnix || 0) - (item.startUnix || 0)) < 3600) { // 1 hora de diferencia
+          return true;
+        }
+        
+        return false;
+      });
+      
+      if (itemIndex !== -1) {
+        store.dispatch(updateRowItem({
+          rowIndex,
+          itemIndex,
+          itemData: { ...item }
+        }));
+      }
+    }
+  }
 
   /**
    * Maneja el evento de resize
@@ -251,10 +303,28 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
       this.requestUpdate();
     }
     
-    this.dispatchEvent(new CustomEvent('item-updated', {
+    const event = new CustomEvent('item-updated', {
       detail: { item: updatedItem, rowIndex: this.rowIndex },
       bubbles: true
-    }));
+    });
+    
+    // Intentar llamar directamente al contenedor
+    let container = this.closest('pg-floatbox-container') as any;
+    
+    // Si no se encuentra, buscar en el document
+    if (!container) {
+      container = document.querySelector('pg-floatbox-container') as any;
+    }
+    
+    if (container && container.handleItemUpdated) {
+      container.handleItemUpdated(event);
+    } else {
+      // Actualizar el store directamente
+      this.updateStoreDirectly(updatedItem, this.rowIndex);
+      
+      // También emitir el evento por si acaso
+      this.dispatchEvent(event);
+    }
   };
 
   /**

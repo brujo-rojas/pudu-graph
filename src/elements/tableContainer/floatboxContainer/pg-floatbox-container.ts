@@ -3,6 +3,7 @@ import { customElement, property } from "lit/decorators.js";
 import { connect } from "pwa-helpers";
 import { store } from "@state/store";
 import type { RootState } from "@state/store";
+import { updateRowItem } from "@state/dataSlice";
 import type { PGConfig, PGRowData, PGItemData } from "@/types";
 import { PuduGraphFloatbox } from "../floatbox/pg-floatbox";
 
@@ -52,7 +53,6 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
   }
 
   stateChanged(state: RootState): void {
-    
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;
@@ -91,7 +91,7 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
     this.requestUpdate();
   }
 
-  private handleItemUpdated(event: Event): void {
+  public handleItemUpdated(event: Event): void {
     const customEvent = event as CustomEvent;
     const { item, rowIndex } = customEvent.detail;
     
@@ -114,17 +114,18 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
       });
       
       if (itemIndex !== -1) {
-        // Actualizar el item en el array
-        const oldItem = this.data[rowIndex].rowData[itemIndex];
+        // Actualizar el item en el store global
+        store.dispatch(updateRowItem({
+          rowIndex,
+          itemIndex,
+          itemData: { ...item }
+        }));
+        
+        // También actualizar localmente para consistencia inmediata
         this.data[rowIndex].rowData[itemIndex] = { ...item };
         
         // Forzar re-render
         this.requestUpdate();
-        
-        // Opcional: actualizar store global si es necesario
-        // store.dispatch(updateItemData({ rowIndex, itemIndex, item }));
-      } else {
-        console.warn('FloatboxContainer: No se pudo encontrar el item para actualizar');
       }
     }
   }
