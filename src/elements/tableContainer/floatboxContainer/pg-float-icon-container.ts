@@ -1,36 +1,17 @@
-import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
-import { connect } from "pwa-helpers";
-import { store } from "@state/store";
-import type { RootState } from "@state/store";
-import { updateRowItem } from "@state/dataSlice";
-import type { PGConfig, PGRowData, PGItemData } from "@/types";
-import { PuduGraphFloatbox } from "../floatbox/pg-floatbox";
+import { LitElement, html } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
+import { connect } from 'pwa-helpers';
+import { store } from '@/state/store';
+import type { RootState } from '@/state/store';
+import type { PGConfig, PGRowData, PGUIState } from '@/types';
+import { updateRowItem, updateRowIcon } from '@/state/dataSlice';
+import '../floatbox/pg-float-icon';
 
-// Verificar que el store se importa correctamente
-
-@customElement("pg-floatbox-container")
-export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
-  constructor() {
-    super();
-  }
-  static styles = css`
-    :host {
-      display: block;
-      position: relative;
-      width: 100%;
-      height: 100%;
-    }
-  `;
-
-  @property({ type: Object })
-  config?: PGConfig;
-
-  @property({ type: Array })
-  data: PGRowData[] = [];
-
-  @property({ type: Object })
-  uiState?: any;
+@customElement("pg-float-icon-container")
+export class PuduGraphFloatIconContainer extends connect(store)(LitElement) {
+  @property({ type: Object }) config?: PGConfig;
+  @property({ type: Array }) data: PGRowData[] = [];
+  @property({ type: Object }) uiState?: PGUIState;
 
   private visibleRange = { start: 0, end: 0 };
   private containerElement?: HTMLElement;
@@ -104,34 +85,23 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
     const customEvent = event as CustomEvent;
     const { item, rowIndex } = customEvent.detail;
     
-    if (this.data && this.data[rowIndex] && this.data[rowIndex].rowData) {
+    if (this.data && this.data[rowIndex] && this.data[rowIndex].iconData) {
       // Encontrar el item en los datos y actualizarlo
-      const rowData = this.data[rowIndex].rowData;
+      const iconData = this.data[rowIndex].iconData!;
       
-      // Buscar por múltiples criterios para encontrar el item original
-      const itemIndex = rowData.findIndex(existingItem => {
-        // Si tienen el mismo label (identificador único)
-        if (existingItem.label === item.label) return true;
-        
-        // Si tienen el mismo color y startUnix similar (para items sin label)
-        if (existingItem.color === item.color && 
-            Math.abs((existingItem.startUnix || 0) - (item.startUnix || 0)) < 3600) { // 1 hora de diferencia
-          return true;
-        }
-        
-        return false;
-      });
+      // Buscar por ID único
+      const itemIndex = iconData.findIndex(existingItem => existingItem.id === item.id);
       
       if (itemIndex !== -1) {
         // Actualizar el item en el store global
-        store.dispatch(updateRowItem({
+        store.dispatch(updateRowIcon({
           rowIndex,
           itemIndex,
           itemData: { ...item }
         }));
         
         // También actualizar localmente para consistencia inmediata
-        this.data[rowIndex].rowData[itemIndex] = { ...item };
+        this.data[rowIndex].iconData![itemIndex] = { ...item };
         
         // Forzar re-render
         this.requestUpdate();
@@ -139,44 +109,40 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
     }
   }
 
-
   private updateVisibleRange(): void {
     // Simplificar temporalmente - renderizar todas las filas
     this.visibleRange = { start: 0, end: this.data.length };
   }
 
-
   private renderRow(row: PGRowData, rowIndex: number) {
-    if (!row.rowData?.length) {
+    if (!row.iconData?.length) {
       return html``;
     }
     
     // Calcular niveles de solapamiento basados en la altura disponible
     const itemHeight = this.config?.options.itemHeight || 60;
     const floatboxHeight = this.config?.options.floatboxHeight || 20;
-    const maxLevels = Math.floor(itemHeight / floatboxHeight); // 60 / 16 = 3.75 → 3 niveles
+    const maxLevels = Math.floor(itemHeight / floatboxHeight);
     
-    return row.rowData.map((item, itemIndex) => {
+    return row.iconData.map((item, itemIndex) => {
       // Usar el índice del item módulo el número máximo de niveles disponibles
       const overlapLevel = itemIndex % maxLevels;
       
       return html`
-        <pg-floatbox
+        <pg-float-icon
           .itemData="${item}"
           .rowData="${row}"
           .rowIndex=${rowIndex}
           .overlapLevel=${overlapLevel}
-        ></pg-floatbox>
+        ></pg-float-icon>
       `;
     });
   }
 
   render() {
-    
     if (!this.config || !this.data.length) {
       return html``;
     }
-    
     
     return html`
       <slot></slot>
@@ -187,3 +153,8 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
   }
 }
 
+declare global {
+  interface HTMLElementTagNameMap {
+    "pg-float-icon-container": PuduGraphFloatIconContainer;
+  }
+}

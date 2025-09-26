@@ -44,3 +44,19 @@
   border-radius: 4px;
   background-color: var(--pg-row-sidebar-input-background-color, #ffffff);
 }
+
+/* Estilos para el resaltado del mouseover */
+.pg-row-sidebar-container.highlighted {
+  background-color: var(--pg-row-sidebar-highlight-color, #007bff) !important;
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.pg-row-sidebar-container.highlighted .row-title span {
+  color: white;
+}
+
+.pg-row-sidebar-container.highlighted .row-column input {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.5);
+}

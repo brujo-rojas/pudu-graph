@@ -14,7 +14,6 @@ export class PgCorner extends connect(store)(LitElement) {
   private uiState: PGUIState = {};
 
   stateChanged(state: RootState): void {
-    console.log("stateChanged", state);
     this.config = state.config;
     // this.data = state.data;
     this.uiState = state.uiState;

@@ -6,6 +6,11 @@ import cssStyles from "./pg-grid-container.css?inline";
 export class PuduGraphGridContainer extends LitElement {
   static styles = unsafeCSS(cssStyles);
 
+  connectedCallback() {
+    super.connectedCallback();
+    console.log('🏗️ Grid Container Connected');
+  }
+
   render() {
     return html`<slot></slot>`;
   }

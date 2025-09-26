@@ -16,11 +16,13 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
   private config: PGConfig | null = null;
   private data: any[] = [];
   private uiState: PGUIState | null = null;
+  private mousePosition: any = null;
 
   stateChanged(state: RootState): void {
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;
+    this.mousePosition = state.mousePosition;
     this.requestUpdate();
   }
 
@@ -39,6 +41,7 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
     const DAY = 24 * 3600;
     const totalDays = Math.ceil((endUnix - startUnix) / DAY);
 
+
     const headerItems: HeaderItem[] = [];
 
     for (let i = 0; i <= totalDays; i++) {
@@ -49,6 +52,9 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
       const date = new Date(dayStart * 1000);
       const utcMonth = date.getUTCMonth();
       const utcDate = date.getUTCDate();
+      
+      if (i < 5 || i > totalDays - 5) { // Log solo los primeros y últimos 5 días
+      }
 
       headerItems.push({
         localDate: date.toISOString().slice(0, 10), // YYYY-MM-DD en UTC
@@ -69,10 +75,12 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
       const month = item.monthNumber;
 
       if (!acc[month]) {
+        const monthName = new Date(item.startUnix * 1000).toLocaleString("es-ES", {
+          month: "long",
+          timeZone: "UTC"
+        });
         acc[month] = {
-          monthName: new Date(item.startUnix * 1000).toLocaleString("default", {
-            month: "long",
-          }),
+          monthName,
           days: [],
         };
       }
@@ -85,9 +93,20 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
       monthObj.days.sort((a, b) => a.dayNumber - b.dayNumber);
     });
 
-    console.log("Header Items by Month:", headerItemsByMonth);
-    // Convertir el objeto a un array
-    return Object.values(headerItemsByMonth);
+    
+    // Convertir el objeto a un array y ordenar por número de mes
+    const sortedMonths = Object.entries(headerItemsByMonth)
+      .sort(([a], [b]) => parseInt(a) - parseInt(b))
+      .map(([_, monthObj]) => monthObj);
+    
+    return sortedMonths;
+  }
+
+  private isDayHighlighted(day: HeaderItem): boolean {
+    if (!this.mousePosition?.dayInfo) return false;
+    
+    // Comparar por fecha ISO (YYYY-MM-DD)
+    return this.mousePosition.dayInfo.date === day.localDate;
   }
 
   render() {
@@ -104,7 +123,7 @@ export class PuduGraphHeaderTimeline extends connect(store)(LitElement) {
               <div class="days-container">
                 ${month.days.map(
                   (day) => html`
-                    <div class="day-header">
+                    <div class="day-header ${this.isDayHighlighted(day) ? 'highlighted' : ''}">
                       <div class="day-title">${day.dayNumber}</div>
                     </div>
                   `

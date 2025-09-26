@@ -14,9 +14,26 @@ export interface PGOptions {
   sidebar?: PGSidebar; // Barra lateral del gráfico
   theme?: PGTheme; // Tema del gráfico
 
-  itemHeight?: number; // Altura de los items en la barra lateral
+  itemHeight?: number; // Altura de los items/filas en píxeles
   flexBoxHeight?: number; // Altura del contenedor flexible de la barra lateral
   dayWidth?: number; // Ancho de cada día en la línea de tiempo
+  
+  // Opciones de interactividad
+  interactions?: PGInteractions; // Configuración de interacciones del usuario
+  
+  // Opciones de optimización
+  floatboxHeight?: number; // Altura del floatbox en píxeles
+  maxOverlapLevels?: number; // Máximo número de niveles de solapamiento
+  enableVirtualization?: boolean; // Habilitar virtualización
+  cacheSize?: number; // Tamaño del cache
+}
+
+export interface PGInteractions {
+  enableDrag?: boolean; // Habilita/deshabilita drag and drop
+  enableResize?: boolean; // Habilita/deshabilita resize
+  enableLeftResize?: boolean; // Habilita/deshabilita resize desde la izquierda
+  enableRightResize?: boolean; // Habilita/deshabilita resize desde la derecha
+  dragHorizontalOnly?: boolean; // Si es true, el arrastre solo será horizontal
 }
 
 export interface PGHeaderConfig {}
@@ -65,15 +82,18 @@ export interface PGRowData {
   tooltip?: string; // Tooltip de la fila
   values: { [key: string]: any }; // Valores asociados a la fila, puede ser un objeto con múltiples campos
   rowData: PGItemData[]; // Datos de la fila, array de objetos con fecha y valor
+  iconData?: PGItemData[]; // Datos de iconos (eventos puntuales), array de objetos con fecha
 }
 
 export interface PGItemData {
+  id?: string; // Identificador único automático
   startUnix: number; // Timestamp de inicio en milisegundos
-  endUnix: number; // Timestamp de fin en milisegundos
+  endUnix?: number; // Timestamp de fin en milisegundos (opcional para iconos)
   value?: number; // Valor asociado a la fecha
   [key: string]: any; // Otros campos adicionales
   color?: string; // Color asociado al valor
   overlapLevel?: number; // Nivel de superposición para el item
+  interactions?: PGInteractions; // Configuración específica de interacciones para este item
 }
 
 export interface PGUIState {

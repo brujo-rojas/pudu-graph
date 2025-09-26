@@ -19,7 +19,6 @@ export class PuduGraphSidebar extends connect(store)(LitElement) {
   private uiState: PGUIState = {};
 
   stateChanged(state: RootState): void {
-    console.log("stateChanged", state);
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;
@@ -29,8 +28,8 @@ export class PuduGraphSidebar extends connect(store)(LitElement) {
   render() {
     return html`
       ${this.data.map(
-        (item: any) => html`
-          <pg-row-sidebar .itemRow=${item}> </pg-row-sidebar>
+        (item: any, index: number) => html`
+          <pg-row-sidebar .itemRow=${item} .rowIndex=${index}> </pg-row-sidebar>
         `
       )}
     `;

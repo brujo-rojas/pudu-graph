@@ -8,18 +8,108 @@
     <script type="module" src="/src/pudu-graph.ts"></script>
   </head>
   <body>
+    <div style="padding: 20px; background: #f5f5f5; border-bottom: 1px solid #ddd;">
+      <h2>Pudu Graph - API Example</h2>
+      <p>Click on grid cells to select them, then use the button below to clear all selections:</p>
+      <button id="clearSelections" style="
+        padding: 10px 20px; 
+        background: #e74c3c; 
+        color: white; 
+        border: none; 
+        border-radius: 4px; 
+        cursor: pointer;
+        font-size: 14px;
+        margin-right: 10px;
+      ">Clear Grid Selections</button>
+      <button id="clearFloatboxSelections" style="
+        padding: 10px 20px; 
+        background: #9b59b6; 
+        color: white; 
+        border: none; 
+        border-radius: 4px; 
+        cursor: pointer;
+        font-size: 14px;
+        margin-right: 10px;
+      ">Clear Floatbox Selections</button>
+      <span id="selectionCount" style="color: #666; font-size: 14px;">0 cells selected</span>
+      <span id="floatboxSelectionCount" style="color: #666; font-size: 14px; margin-left: 10px;">0 floatboxes selected</span>
+    </div>
+    
     <pudu-graph loading="true"></pudu-graph>
 
     <script type="module">
       const graphElement = document.querySelector("pudu-graph");
+      const clearButton = document.getElementById("clearSelections");
+      const clearFloatboxButton = document.getElementById("clearFloatboxSelections");
+      const selectionCount = document.getElementById("selectionCount");
+      const floatboxSelectionCount = document.getElementById("floatboxSelectionCount");
+      
+      // Función para limpiar las selecciones del grid
+      function clearGridSelections() {
+        if (graphElement && graphElement.clearGridSelections) {
+          graphElement.clearGridSelections();
+          console.log("Grid selections cleared via API");
+        } else {
+          console.warn("clearGridSelections method not available on graph element");
+        }
+      }
+      
+      // Función para limpiar las selecciones de floatboxes e iconos
+      function clearFloatboxSelections() {
+        if (graphElement && graphElement.clearFloatboxSelections) {
+          graphElement.clearFloatboxSelections();
+          console.log("Floatbox selections cleared via API");
+        } else {
+          console.warn("clearFloatboxSelections method not available on graph element");
+        }
+      }
+      
+      // Función para obtener el conteo de selecciones del grid
+      function updateSelectionCount() {
+        if (graphElement && graphElement.getGridSelectionCount) {
+          const count = graphElement.getGridSelectionCount();
+          selectionCount.textContent = `${count} cells selected`;
+        }
+      }
+      
+      // Función para obtener el conteo de selecciones de floatboxes
+      function updateFloatboxSelectionCount() {
+        if (graphElement && graphElement.getFloatboxSelectionCount) {
+          const count = graphElement.getFloatboxSelectionCount();
+          floatboxSelectionCount.textContent = `${count} floatboxes selected`;
+        }
+      }
+      
+      // Event listeners para los botones
+      clearButton.addEventListener("click", clearGridSelections);
+      clearFloatboxButton.addEventListener("click", clearFloatboxSelections);
+      
+      // Actualizar los conteos cada 500ms
+      setInterval(() => {
+        updateSelectionCount();
+        updateFloatboxSelectionCount();
+      }, 500);
       const config = {
         options: {
           startUnix: Date.parse("2025-05-20T00:00:00Z") / 1000,
           endUnix: Date.parse("2025-08-20T00:00:00Z") / 1000,
 
-          itemHeight: 60, // Altura de los items en la barra lateral
+          itemHeight: 60, // Altura de los items/filas en píxeles
           flexBoxHeight: 20, // Altura del contenedor flexible de la barra
           dayWidth: 30, // Ancho de cada día en la línea de tiempo
+          
+          // Opciones de optimización
+          floatboxHeight: 16, // Altura del floatbox en píxeles
+          maxOverlapLevels: 5, // Máximo número de niveles de solapamiento
+          enableVirtualization: true, // Habilitar virtualización
+          cacheSize: 1000, // Tamaño del cache
+
+          // Configuración de interacciones por defecto
+          interactions: {
+            enableDrag: false,
+            enableResize: false,
+            dragHorizontalOnly: true
+          },
 
           header: {},
           sidebar: {
@@ -59,27 +149,31 @@
             values: {},
             rowData: [
               {
-                startUnix: Date.parse("2025-05-25T00:00:00Z") / 1000,
+                startUnix: Date.parse("2025-05-23T00:00:00Z") / 1000,
                 endUnix: Date.parse("2025-05-27T10:00:00Z") / 1000,
                 color: "#3498db",
+                label: "Elemento 1"
               },
 
               {
                 startUnix: Date.parse("2025-05-28T00:00:00Z") / 1000,
                 endUnix: Date.parse("2025-05-30T10:00:00Z") / 1000,
                 color: "red",
+                label: "Elemento 2"
               },
 
               {
                 startUnix: Date.parse("2025-05-25T00:00:00Z") / 1000,
                 endUnix: Date.parse("2025-05-31T10:00:00Z") / 1000,
                 color: "green",
+                label: "Elemento 3"
               },
 
               {
                 startUnix: Date.parse("2025-05-25T00:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-01T01:00:00Z") / 1000,
                 color: "yellow",
+                label: "Elemento 4"
               },
 
 
@@ -88,47 +182,156 @@
                 startUnix: Date.parse("2025-06-03T00:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-04T00:00:00Z") / 1000,
                 color: "blue",
+                label: "Elemento 5"
               },
               {
                 startUnix: Date.parse("2025-06-03T02:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-04T02:00:00Z") / 1000,
                 color: "red",
+                label: "Elemento 6"
               },
               {
                 startUnix: Date.parse("2025-06-03T04:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-04T04:00:00Z") / 1000,
                 color: "green",
+                label: "Elemento 7"
               },
               {
                 startUnix: Date.parse("2025-06-03T06:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-04T06:00:00Z") / 1000,
                 color: "yellow",
+                label: "Elemento 8"
               },
               {
                 startUnix: Date.parse("2025-06-03T08:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-04T08:00:00Z") / 1000,
                 color: "blue",
+                label: "Elemento 9"
               },
               {
                 startUnix: Date.parse("2025-06-03T10:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-04T10:00:00Z") / 1000,
                 color: "red",
+                label: "Elemento 10"
               },
 
 
             ],
+            iconData: [
+              {
+                startUnix: Date.parse("2025-05-22T12:00:00Z") / 1000,
+                color: "#e74c3c",
+                label: "Evento importante"
+              },
+              {
+                startUnix: Date.parse("2025-05-23T18:00:00Z") / 1000,
+                color: "#f39c12",
+                label: "Reunión"
+              },
+              {
+                startUnix: Date.parse("2025-05-24T09:00:00Z") / 1000,
+                color: "#27ae60",
+                label: "Deadline"
+              }
+            ]
           },
           {
             id: 2,
             label: "N 2",
             tooltip: "Tooltip 2",
             values: {},
+            rowData: [
+              {
+                startUnix: Date.parse("2025-06-01T00:00:00Z") / 1000,
+                endUnix: Date.parse("2025-06-03T00:00:00Z") / 1000,
+                color: "#9b59b6",
+                label: "Elemento fila 2"
+              }
+            ],
+            iconData: [
+              {
+                startUnix: Date.parse("2025-06-02T14:00:00Z") / 1000,
+                color: "#8e44ad",
+                label: "Checkpoint"
+              }
+            ]
           },
           {
             id: 3,
             label: "N 3",
-            tooltip: "Tooltip 3",
+            tooltip: "Tooltip 3 - Con drag y resize habilitados",
             values: {},
+            rowData: [
+              {
+                startUnix: Date.parse("2025-06-10T00:00:00Z") / 1000,
+                endUnix: Date.parse("2025-06-15T00:00:00Z") / 1000,
+                color: "#e74c3c",
+                label: "Arrastra y redimensiona",
+                interactions: {
+                  enableDrag: true,
+                  enableResize: true,
+                  enableLeftResize: true,
+                  enableRightResize: true,
+                  dragHorizontalOnly: true
+                }
+              },
+              {
+                startUnix: Date.parse("2025-06-20T00:00:00Z") / 1000,
+                endUnix: Date.parse("2025-06-25T00:00:00Z") / 1000,
+                color: "#9b59b6",
+                label: "Solo resize derecho",
+                interactions: {
+                  enableDrag: false,
+                  enableResize: true,
+                  enableLeftResize: false,
+                  enableRightResize: true
+                }
+              },
+              {
+                startUnix: Date.parse("2025-07-01T00:00:00Z") / 1000,
+                endUnix: Date.parse("2025-07-05T00:00:00Z") / 1000,
+                color: "#f39c12",
+                label: "Solo drag",
+                interactions: {
+                  enableDrag: true,
+                  enableResize: false
+                }
+              }
+            ],
+            iconData: [
+              {
+                startUnix: Date.parse("2025-05-25T12:00:00Z") / 1000,
+                color: "#e67e22",
+                label: "Icono arrastrable 1",
+                interactions: {
+                  enableDrag: true
+                }
+              },
+              {
+                startUnix: Date.parse("2025-05-28T12:00:00Z") / 1000,
+                color: "#e67e22",
+                label: "Icono arrastrable 2",
+                interactions: {
+                  enableDrag: true
+                }
+              },
+              {
+                startUnix: Date.parse("2025-06-05T18:00:00Z") / 1000,
+                color: "#8e44ad",
+                label: "Icono arrastrable 3",
+                interactions: {
+                  enableDrag: true
+                }
+              },
+              {
+                startUnix: Date.parse("2025-06-15T09:00:00Z") / 1000,
+                color: "#27ae60",
+                label: "Icono arrastrable 4",
+                interactions: {
+                  enableDrag: true
+                }
+              }
+            ]
           },
           {
             id: 4,
