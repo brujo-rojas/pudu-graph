@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && npm run copy-react-wrapper && npm run generate-types",
-    "vercel-build": "npm run build && npm run copy-static",
+    "vercel-build": "BUILD_TARGET=standalone npm run build && npm run copy-static",
     "netlify-build": "BUILD_TARGET=standalone npm run build && npm run copy-static",
     "copy-react-wrapper": "mkdir -p dist/react && cp src/react/PuduGraphReact.tsx dist/react/PuduGraphReact.tsx",
     "copy-static": "cp -r public/* dist/ 2>/dev/null || true && npm run create-demo-html",
