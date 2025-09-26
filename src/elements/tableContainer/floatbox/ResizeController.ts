@@ -1,8 +1,7 @@
 import type { PGConfig, PGItemData } from "@/types";
 import { LitElement } from "lit";
-import { calculateFloatboxPosition } from "./calculateFloatboxPosition";
 
-// Tipos y interfaces agrupados para claridad
+// Tipos y interfaces
 type RenderRoot = typeof LitElement.prototype.renderRoot;
 
 interface ResizeControllerParams {
@@ -12,11 +11,8 @@ interface ResizeControllerParams {
   renderRoot: RenderRoot;
   rowIndex?: number;
   resizeSide?: 'left' | 'right';
-}
-
-interface ResizeStartParams {
-  e: PointerEvent;
-  initialWidth: number;
+  onResize?: (params: ResizeCallbackParams) => void;
+  onResizeEnd?: () => void;
 }
 
 interface ResizeCallbackParams {
@@ -27,8 +23,8 @@ interface ResizeCallbackParams {
 }
 
 /**
- * ResizeController: añade funcionalidad de redimensionar a un elemento.
- * Usa composición, no herencia. Recibe el contexto y datos por parámetro.
+ * ResizeController: Maneja el redimensionamiento de elementos floatbox.
+ * Soporta resize desde ambos lados (izquierdo y derecho) con validaciones de límites.
  */
 class ResizeController {
   // Estado interno
@@ -40,15 +36,23 @@ class ResizeController {
   private resizeSide: 'left' | 'right' = 'right';
 
   // Configuración y datos
-  private itemData: PGItemData;
-  private config: PGConfig;
-  private zoomValue: number;
-  private renderRoot: RenderRoot;
-  private rowIndex: number;
+  private readonly itemData: PGItemData;
+  private readonly config: PGConfig;
+  private readonly zoomValue: number;
+  private readonly renderRoot: RenderRoot;
+  private readonly rowIndex: number;
 
-  // Callbacks para notificar resize
+  // Callbacks
   private onResizeCallback: ((params: ResizeCallbackParams) => void) | null = null;
   private onResizeEndCallback: (() => void) | null = null;
+
+  // Constantes
+  private static readonly MIN_WIDTH = 10;
+  private static readonly SECONDS_PER_DAY = 86400;
+  
+  // TODO: Performance Optimization - Cache para cálculos frecuentes
+  // private static readonly CACHE_SIZE_LIMIT = 100;
+  // private static calculationCache = new Map<string, number>();
 
   constructor(params: ResizeControllerParams) {
     this.itemData = params.itemData;
@@ -57,203 +61,156 @@ class ResizeController {
     this.renderRoot = params.renderRoot;
     this.rowIndex = params.rowIndex ?? 0;
     this.resizeSide = params.resizeSide ?? 'right';
-  }
-
-  /** Activa los eventos de resize sobre el componente host. */
-  addResizeEvents(host: LitElement) {
-    // Ya no es necesario agregar eventos aquí, se manejan directamente en el handle
-  }
-
-  /** Desactiva los eventos de resize sobre el componente host. */
-  removeResizeEvents(host: LitElement) {
-    // Ya no es necesario remover eventos aquí
+    
+    // Configurar callbacks si se proporcionan
+    if (params.onResize) {
+      this.onResizeCallback = params.onResize;
+    }
+    if (params.onResizeEnd) {
+      this.onResizeEndCallback = params.onResizeEnd;
+    }
   }
 
   /** Inicia el resize y agrega listeners globales. */
-  public startResize(event: PointerEvent, floatbox: HTMLElement, side?: 'left' | 'right') {
-    if (!event || !floatbox) {
-      console.warn("Invalid parameters for startResize");
+  public startResize(event: PointerEvent, floatbox: HTMLElement, side?: 'left' | 'right'): void {
+    if (!this.validateStartResizeParams(event, floatbox)) {
       return;
     }
 
-    // Actualizar el lado de resize si se especifica
-    if (side) {
-      this.resizeSide = side;
-    }
-
+    this.resizeSide = side ?? this.resizeSide;
     event.stopPropagation();
-    this.isResizing = true;
-    this.resizeStartX = event.clientX;
-    this.initialWidth = floatbox.getBoundingClientRect().width;
-    // Obtener la posición actual del host desde las CSS custom properties
-    const host = (this.renderRoot as any).host as HTMLElement;
-    const currentLeft = host.style.getPropertyValue("--pg-floatbox-left");
-    this.initialLeft = parseFloat(currentLeft) || 0;
-    this.activePointerId = event.pointerId;
     
-    console.log('Start resize:', { 
-      side: this.resizeSide, 
-      initialLeft: this.initialLeft, 
-      initialWidth: this.initialWidth,
-      currentLeft,
-      host: host.tagName 
-    });
-    
-    try {
-      (event.target as HTMLElement).setPointerCapture(event.pointerId);
-      this.addPointerEvents();
-    } catch (error) {
-      console.warn("Failed to start resize:", error);
-      this.isResizing = false;
-      this.activePointerId = null;
-    }
+    this.initializeResizeState(event, floatbox);
+    this.capturePointer(event);
+    this.addPointerEvents();
   }
 
-  /** Agrega listeners globales para el resize. */
-  private addPointerEvents() {
-    window.addEventListener("pointermove", this.onPointerMove);
-    window.addEventListener("pointerup", this.onPointerUp);
-    window.addEventListener("pointercancel", this.onPointerCancel);
+  /** Configura callbacks para notificar cambios. */
+  public onResize(callback: (params: ResizeCallbackParams) => void): void {
+    this.onResizeCallback = callback;
   }
 
-  /** Elimina listeners globales para el resize. */
-  private removePointerEvents() {
-    window.removeEventListener("pointermove", this.onPointerMove);
-    window.removeEventListener("pointerup", this.onPointerUp);
-    window.removeEventListener("pointercancel", this.onPointerCancel);
+  public onResizeEnd(callback: () => void): void {
+    this.onResizeEndCallback = callback;
   }
 
-  /** Handler para pointermove: calcula y notifica el nuevo ancho. */
-  private onPointerMove = (e: PointerEvent) => {
-    if (e.pointerId !== this.activePointerId) return;
-    if (!this.isResizing) return;
+  /** Verifica si hay un resize activo. */
+  public isActive(): boolean {
+    return this.isResizing;
+  }
+
+  /** Limpia el estado y callbacks. */
+  public cleanup(): void {
+    this.isResizing = false;
+    this.activePointerId = null;
+    this.removePointerEvents();
+    this.onResizeCallback = null;
+    this.onResizeEndCallback = null;
+  }
+
+  // TODO: Performance Optimization - Métodos de cache
+  // /** Limpia el cache de cálculos (método estático) */
+  // public static clearCache(): void {
+  //   ResizeController.calculationCache.clear();
+  // }
+  //
+  // /** Obtiene un valor del cache o lo calcula y lo cachea */
+  // private getCachedCalculation(key: string, calculationFn: () => number): number {
+  //   if (ResizeController.calculationCache.has(key)) {
+  //     return ResizeController.calculationCache.get(key)!;
+  //   }
+  //
+  //   const result = calculationFn();
+  //   
+  //   // Limitar el tamaño del cache
+  //   if (ResizeController.calculationCache.size > ResizeController.CACHE_SIZE_LIMIT) {
+  //     const firstKey = ResizeController.calculationCache.keys().next().value;
+  //     ResizeController.calculationCache.delete(firstKey);
+  //   }
+  //   
+  //   ResizeController.calculationCache.set(key, result);
+  //   return result;
+  // }
+
+  // Métodos de eventos (compatibilidad con interfaz existente)
+  public addResizeEvents(): void {
+    // Los eventos se manejan directamente en los handles
+  }
+
+  public removeResizeEvents(): void {
+    // Los eventos se manejan directamente en los handles
+  }
+
+  // Handlers de eventos
+  private onPointerMove = (e: PointerEvent): void => {
+    if (!this.shouldProcessEvent(e)) return;
     
     const deltaX = e.clientX - this.resizeStartX;
     
     if (this.resizeSide === 'left') {
-      // Resize desde la izquierda
-      const rawLeft = this.initialLeft + deltaX;
-      const rawWidth = this.initialWidth - deltaX;
-      const newLeft = this.calculateConstrainedLeft(rawLeft);
-      const newWidth = this.calculateConstrainedWidth(rawWidth);
-      const newStartUnix = this.calculateNewStartUnix(newLeft);
-      
-      console.log('Left resize:', { 
-        deltaX, 
-        initialLeft: this.initialLeft, 
-        initialWidth: this.initialWidth,
-        rawLeft, 
-        rawWidth, 
-        newLeft, 
-        newWidth, 
-        newStartUnix 
-      });
-      
-      // Actualizar DOM para resize izquierdo
-      this.updateDOMLeft(newLeft, newWidth);
-      
-      // Notificar el cambio
-      this.notifyResize({ newWidth, newStartUnix, newLeft });
+      this.handleLeftResize(deltaX);
     } else {
-      // Resize desde la derecha (lógica original)
-      const rawWidth = this.initialWidth + deltaX;
-      const newWidth = this.calculateConstrainedWidth(rawWidth);
-      const newEndUnix = this.calculateNewEndUnix(newWidth);
-      
-      // Actualizar DOM para resize derecho
-      this.updateDOM(newWidth);
-      
-      // Notificar el cambio
-      this.notifyResize({ newWidth, newEndUnix });
+      this.handleRightResize(deltaX);
     }
     
     e.preventDefault();
   };
 
-  /** Handler para pointerup: termina el resize y actualiza datos. */
-  private onPointerUp = (e: PointerEvent) => {
-    if (e.pointerId !== this.activePointerId) return;
-    if (!this.isResizing) return;
-    
-    this.isResizing = false;
-    this.activePointerId = null;
+  private onPointerUp = (e: PointerEvent): void => {
+    if (!this.shouldProcessEvent(e)) return;
     this.finishResize(e);
   };
 
-  /** Handler para pointercancel: cancela el resize. */
-  private onPointerCancel = (e: PointerEvent) => {
-    if (e.pointerId !== this.activePointerId) return;
-    this.isResizing = false;
-    this.activePointerId = null;
-    this.removePointerEvents();
+  private onPointerCancel = (e: PointerEvent): void => {
+    if (!this.shouldProcessEvent(e)) return;
+    this.cancelResize();
   };
 
-  /** Termina el resize, actualiza modelo y notifica el cambio. */
-  private finishResize(e: PointerEvent) {
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  // Lógica de resize
+  private handleLeftResize(deltaX: number): void {
+    const rawLeft = this.initialLeft + deltaX;
+    const rawWidth = this.initialWidth - deltaX;
     
-    const deltaX = e.clientX - this.resizeStartX;
+    const newLeft = this.calculateConstrainedLeft(rawLeft);
+    const newWidth = this.calculateConstrainedWidth(rawWidth);
+    const newStartUnix = this.calculateNewStartUnix(newLeft);
     
-    if (this.resizeSide === 'left') {
-      // Resize desde la izquierda
-      const rawLeft = this.initialLeft + deltaX;
-      const rawWidth = this.initialWidth - deltaX;
-      const newLeft = this.calculateConstrainedLeft(rawLeft);
-      const newWidth = this.calculateConstrainedWidth(rawWidth);
-      const newStartUnix = this.calculateNewStartUnix(newLeft);
-      
-      // Actualizar el modelo de datos
-      this.itemData.startUnix = newStartUnix;
-      
-      // Notificar el cambio final
-      this.notifyResize({ newWidth, newStartUnix, newLeft });
-    } else {
-      // Resize desde la derecha (lógica original)
-      const rawWidth = this.initialWidth + deltaX;
-      const newWidth = this.calculateConstrainedWidth(rawWidth);
-      const newEndUnix = this.calculateNewEndUnix(newWidth);
-      
-      // Actualizar el modelo de datos
-      this.itemData.endUnix = newEndUnix;
-      
-      // Notificar el cambio final
-      this.notifyResize({ newWidth, newEndUnix });
-    }
-    
-    // Notificar que terminó el resize
-    this.onResizeEndCallback?.();
-    
-    this.removePointerEvents();
+    this.updateDOMLeft(newLeft, newWidth);
+    this.notifyResize({ newWidth, newStartUnix, newLeft });
   }
 
-  /** Calcula la nueva fecha de fin basada en el nuevo ancho. */
+  private handleRightResize(deltaX: number): void {
+    const rawWidth = this.initialWidth + deltaX;
+    const newWidth = this.calculateConstrainedWidth(rawWidth);
+    const newEndUnix = this.calculateNewEndUnix(newWidth);
+    
+    this.updateDOM(newWidth);
+    this.notifyResize({ newWidth, newEndUnix });
+  }
+
+  // Cálculos de posición y tamaño
   private calculateNewEndUnix(newWidth: number): number {
     if (!this.config?.options || !this.itemData?.startUnix) {
-      console.warn("Invalid config or itemData for calculateNewEndUnix");
       return this.itemData?.startUnix || 0;
     }
 
     const { dayWidth = 30 } = this.config.options;
-    const durationSeconds = (newWidth / (dayWidth * this.zoomValue)) * 86400; // 86400 = segundos por día
+    const durationSeconds = (newWidth / (dayWidth * this.zoomValue)) * ResizeController.SECONDS_PER_DAY;
     return this.itemData.startUnix + durationSeconds;
   }
 
-  /** Calcula la nueva fecha de inicio basada en la nueva posición left. */
   private calculateNewStartUnix(newLeft: number): number {
     if (!this.config?.options) {
-      console.warn("Invalid config for calculateNewStartUnix");
       return this.itemData?.startUnix || 0;
     }
 
     const { startUnix = 0, dayWidth = 30 } = this.config.options;
-    const leftOffsetSeconds = (newLeft / (dayWidth * this.zoomValue)) * 86400; // 86400 = segundos por día
+    const leftOffsetSeconds = (newLeft / (dayWidth * this.zoomValue)) * ResizeController.SECONDS_PER_DAY;
     return startUnix + leftOffsetSeconds;
   }
 
-  /** Calcula el ancho máximo permitido basado en el timeline. */
   private calculateMaxWidth(): number {
     if (!this.config?.options || !this.itemData?.startUnix) {
-      console.warn("Invalid config or itemData for calculateMaxWidth");
       return 1000; // Fallback width
     }
 
@@ -261,56 +218,39 @@ class ResizeController {
     const maxDurationSeconds = endUnix - this.itemData.startUnix;
     
     if (maxDurationSeconds <= 0) {
-      console.warn("Invalid duration for calculateMaxWidth");
       return 1000; // Fallback width
     }
     
-    return (maxDurationSeconds / 86400) * dayWidth * this.zoomValue;
+    return (maxDurationSeconds / ResizeController.SECONDS_PER_DAY) * dayWidth * this.zoomValue;
   }
 
-  /** Aplica límites mínimo y máximo al ancho. */
   private calculateConstrainedWidth(rawWidth: number): number {
     if (typeof rawWidth !== 'number' || isNaN(rawWidth)) {
-      console.warn("Invalid rawWidth for calculateConstrainedWidth");
-      return 10; // Minimum width
+      return ResizeController.MIN_WIDTH;
     }
 
-    const minWidth = 10;
     const maxWidth = this.calculateMaxWidth();
-    return Math.max(minWidth, Math.min(maxWidth, rawWidth));
+    return Math.max(ResizeController.MIN_WIDTH, Math.min(maxWidth, rawWidth));
   }
 
-  /** Calcula la posición mínima permitida para resize izquierdo. */
   private calculateMinLeft(): number {
-    if (!this.config?.options) {
-      console.warn("Invalid config for calculateMinLeft");
-      return 0;
-    }
-
-    const { startUnix = 0, dayWidth = 30 } = this.config.options;
-    const minLeft = 0; // No puede ir más allá del inicio del timeline
-    
-    return minLeft;
+    return 0; // No puede ir más allá del inicio del timeline
   }
 
-  /** Calcula la posición máxima permitida para resize izquierdo. */
   private calculateMaxLeft(): number {
     if (!this.config?.options || !this.itemData?.endUnix) {
-      console.warn("Invalid config or itemData for calculateMaxLeft");
       return this.initialLeft;
     }
 
     const { startUnix = 0, dayWidth = 30 } = this.config.options;
     const maxDurationSeconds = this.itemData.endUnix - startUnix;
-    const maxLeft = (maxDurationSeconds / 86400) * (dayWidth * this.zoomValue) - 10; // -10 para ancho mínimo
+    const maxLeft = (maxDurationSeconds / ResizeController.SECONDS_PER_DAY) * (dayWidth * this.zoomValue) - ResizeController.MIN_WIDTH;
     
     return Math.max(0, maxLeft);
   }
 
-  /** Aplica límites a la posición left para resize izquierdo. */
   private calculateConstrainedLeft(rawLeft: number): number {
     if (typeof rawLeft !== 'number' || isNaN(rawLeft)) {
-      console.warn("Invalid rawLeft for calculateConstrainedLeft");
       return this.initialLeft;
     }
 
@@ -319,107 +259,169 @@ class ResizeController {
     return Math.max(minLeft, Math.min(maxLeft, rawLeft));
   }
 
-  /** Obtiene el elemento floatbox del renderRoot. */
-  private getFloatBoxChildElement(renderRoot: RenderRoot): HTMLElement | null {
-    return renderRoot.querySelector(".pg-floatbox") as HTMLElement;
-  }
-
-  /** Obtiene el handle de resize del renderRoot. */
-  private getResizeHandleElement(renderRoot: RenderRoot): HTMLElement | null {
-    return renderRoot.querySelector(".resize-handle") as HTMLElement;
-  }
-
-  /** Obtiene el handle de resize izquierdo del renderRoot. */
-  private getLeftResizeHandleElement(renderRoot: RenderRoot): HTMLElement | null {
-    return renderRoot.querySelector(".resize-handle-left") as HTMLElement;
-  }
-
-  /** Actualiza el DOM durante el resize. */
-  private updateDOM(newWidth: number) {
+  // Actualización del DOM
+  private updateDOM(newWidth: number): void {
     if (typeof newWidth !== 'number' || isNaN(newWidth) || newWidth < 0) {
-      console.warn("Invalid newWidth for updateDOM:", newWidth);
       return;
     }
 
-    const host = (this.renderRoot as any).host as HTMLElement;
-    const resizeHandle = this.getResizeHandleElement(this.renderRoot);
+    const host = this.getHostElement();
+    const resizeHandle = this.getResizeHandleElement();
     
-    try {
-      // Actualizar CSS custom properties del host
-      if (host) {
-        host.style.setProperty("--pg-floatbox-width", `${newWidth}px`);
-      }
-      
-      // Actualizar posición del handle directamente
-      if (resizeHandle) {
-        resizeHandle.style.left = `${newWidth - 8}px`;
-      }
-    } catch (error) {
-      console.warn("Failed to update DOM during resize:", error);
+    if (host) {
+      host.style.setProperty("--pg-floatbox-width", `${newWidth}px`);
+    }
+    
+    if (resizeHandle) {
+      resizeHandle.style.left = `${newWidth - 8}px`;
     }
   }
 
-  /** Actualiza el DOM durante el resize desde la izquierda. */
-  private updateDOMLeft(newLeft: number, newWidth: number) {
+  private updateDOMLeft(newLeft: number, newWidth: number): void {
     if (typeof newLeft !== 'number' || isNaN(newLeft) || typeof newWidth !== 'number' || isNaN(newWidth) || newWidth < 0) {
-      console.warn("Invalid parameters for updateDOMLeft:", { newLeft, newWidth });
       return;
     }
 
-    const host = (this.renderRoot as any).host as HTMLElement;
-    const leftHandle = this.getLeftResizeHandleElement(this.renderRoot);
+    const host = this.getHostElement();
+    const leftHandle = this.getLeftResizeHandleElement();
     
-    try {
-      // Actualizar CSS custom properties del host
-      if (host) {
-        host.style.setProperty("--pg-floatbox-left", `${newLeft}px`);
-        host.style.setProperty("--pg-floatbox-width", `${newWidth}px`);
-      }
-      
-      // Actualizar posición del handle izquierdo (siempre en 0 para el handle izquierdo)
-      if (leftHandle) {
-        leftHandle.style.left = `0px`;
-      }
-    } catch (error) {
-      console.warn("Failed to update DOM during left resize:", error);
+    if (host) {
+      host.style.setProperty("--pg-floatbox-left", `${newLeft}px`);
+      host.style.setProperty("--pg-floatbox-width", `${newWidth}px`);
+    }
+    
+    if (leftHandle) {
+      leftHandle.style.left = `0px`;
     }
   }
 
-  /** Notifica el resize al callback externo. */
+  // Utilidades
+  private validateStartResizeParams(event: PointerEvent, floatbox: HTMLElement): boolean {
+    if (!event) {
+      console.warn("ResizeController: Invalid event parameter");
+      return false;
+    }
+    
+    if (!floatbox) {
+      console.warn("ResizeController: Invalid floatbox parameter");
+      return false;
+    }
+    
+    if (!this.itemData) {
+      console.warn("ResizeController: ItemData not available");
+      return false;
+    }
+    
+    if (!this.config?.options) {
+      console.warn("ResizeController: Config options not available");
+      return false;
+    }
+    
+    if (typeof event.clientX !== 'number' || isNaN(event.clientX)) {
+      console.warn("ResizeController: Invalid clientX value");
+      return false;
+    }
+    
+    return true;
+  }
+
+  private initializeResizeState(event: PointerEvent, floatbox: HTMLElement): void {
+    this.isResizing = true;
+    this.resizeStartX = event.clientX;
+    this.initialWidth = floatbox.getBoundingClientRect().width;
+    this.initialLeft = this.getCurrentLeftPosition();
+    this.activePointerId = event.pointerId;
+  }
+
+  private getCurrentLeftPosition(): number {
+    const host = this.getHostElement();
+    const currentLeft = host?.style.getPropertyValue("--pg-floatbox-left");
+    return parseFloat(currentLeft || "0") || 0;
+  }
+
+  private capturePointer(event: PointerEvent): void {
+    try {
+      (event.target as HTMLElement).setPointerCapture(event.pointerId);
+    } catch (error) {
+      console.warn("Failed to capture pointer:", error);
+      this.isResizing = false;
+      this.activePointerId = null;
+    }
+  }
+
+  private shouldProcessEvent(e: PointerEvent): boolean {
+    return e.pointerId === this.activePointerId && this.isResizing;
+  }
+
+  private finishResize(e: PointerEvent): void {
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    
+    const deltaX = e.clientX - this.resizeStartX;
+    
+    if (this.resizeSide === 'left') {
+      this.finalizeLeftResize(deltaX);
+    } else {
+      this.finalizeRightResize(deltaX);
+    }
+    
+    this.cleanup();
+    this.onResizeEndCallback?.();
+  }
+
+  private finalizeLeftResize(deltaX: number): void {
+    const rawLeft = this.initialLeft + deltaX;
+    const rawWidth = this.initialWidth - deltaX;
+    const newLeft = this.calculateConstrainedLeft(rawLeft);
+    const newWidth = this.calculateConstrainedWidth(rawWidth);
+    const newStartUnix = this.calculateNewStartUnix(newLeft);
+    
+    this.itemData.startUnix = newStartUnix;
+    this.notifyResize({ newWidth, newStartUnix, newLeft });
+  }
+
+  private finalizeRightResize(deltaX: number): void {
+    const rawWidth = this.initialWidth + deltaX;
+    const newWidth = this.calculateConstrainedWidth(rawWidth);
+    const newEndUnix = this.calculateNewEndUnix(newWidth);
+    
+    this.itemData.endUnix = newEndUnix;
+    this.notifyResize({ newWidth, newEndUnix });
+  }
+
+  private cancelResize(): void {
+    this.isResizing = false;
+    this.activePointerId = null;
+    this.removePointerEvents();
+  }
+
   private notifyResize(params: ResizeCallbackParams): void {
     this.onResizeCallback?.(params);
   }
 
-  /** Permite registrar un callback para el resize. */
-  onResize(callback: (params: ResizeCallbackParams) => void) {
-    if (typeof callback !== "function") {
-      console.warn("onResize debe ser una función");
-      return;
-    }
-    this.onResizeCallback = callback;
+  // Event listeners
+  private addPointerEvents(): void {
+    window.addEventListener("pointermove", this.onPointerMove);
+    window.addEventListener("pointerup", this.onPointerUp);
+    window.addEventListener("pointercancel", this.onPointerCancel);
   }
 
-  /** Permite registrar un callback para cuando termine el resize. */
-  onResizeEnd(callback: () => void) {
-    if (typeof callback !== "function") {
-      console.warn("onResizeEnd debe ser una función");
-      return;
-    }
-    this.onResizeEndCallback = callback;
+  private removePointerEvents(): void {
+    window.removeEventListener("pointermove", this.onPointerMove);
+    window.removeEventListener("pointerup", this.onPointerUp);
+    window.removeEventListener("pointercancel", this.onPointerCancel);
   }
 
-  /** Limpia el estado del resize y remueve eventos. */
-  public cleanup() {
-    this.isResizing = false;
-    this.activePointerId = null;
-    this.removePointerEvents();
-    this.onResizeCallback = null;
-    this.onResizeEndCallback = null;
+  // Selectores de elementos
+  private getHostElement(): HTMLElement | null {
+    return (this.renderRoot as any).host as HTMLElement;
   }
 
-  /** Verifica si el resize está activo. */
-  public isActive(): boolean {
-    return this.isResizing;
+  private getResizeHandleElement(): HTMLElement | null {
+    return this.renderRoot.querySelector(".resize-handle") as HTMLElement;
+  }
+
+  private getLeftResizeHandleElement(): HTMLElement | null {
+    return this.renderRoot.querySelector(".resize-handle-left") as HTMLElement;
   }
 }
 

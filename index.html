@@ -127,8 +127,45 @@
           {
             id: 3,
             label: "N 3",
-            tooltip: "Tooltip 3",
+            tooltip: "Tooltip 3 - Con drag y resize habilitados",
             values: {},
+            rowData: [
+              {
+                startUnix: Date.parse("2025-06-10T00:00:00Z") / 1000,
+                endUnix: Date.parse("2025-06-15T00:00:00Z") / 1000,
+                color: "#e74c3c",
+                foo: "Arrastra y redimensiona",
+                interactions: {
+                  enableDrag: true,
+                  enableResize: true,
+                  enableLeftResize: true,
+                  enableRightResize: true,
+                  dragHorizontalOnly: true
+                }
+              },
+              {
+                startUnix: Date.parse("2025-06-20T00:00:00Z") / 1000,
+                endUnix: Date.parse("2025-06-25T00:00:00Z") / 1000,
+                color: "#9b59b6",
+                foo: "Solo resize derecho",
+                interactions: {
+                  enableDrag: false,
+                  enableResize: true,
+                  enableLeftResize: false,
+                  enableRightResize: true
+                }
+              },
+              {
+                startUnix: Date.parse("2025-07-01T00:00:00Z") / 1000,
+                endUnix: Date.parse("2025-07-05T00:00:00Z") / 1000,
+                color: "#f39c12",
+                foo: "Solo drag",
+                interactions: {
+                  enableDrag: true,
+                  enableResize: false
+                }
+              }
+            ]
           },
           {
             id: 4,

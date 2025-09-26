@@ -17,6 +17,17 @@ export interface PGOptions {
   itemHeight?: number; // Altura de los items en la barra lateral
   flexBoxHeight?: number; // Altura del contenedor flexible de la barra lateral
   dayWidth?: number; // Ancho de cada día en la línea de tiempo
+  
+  // Opciones de interactividad
+  interactions?: PGInteractions; // Configuración de interacciones del usuario
+}
+
+export interface PGInteractions {
+  enableDrag?: boolean; // Habilita/deshabilita drag and drop
+  enableResize?: boolean; // Habilita/deshabilita resize
+  enableLeftResize?: boolean; // Habilita/deshabilita resize desde la izquierda
+  enableRightResize?: boolean; // Habilita/deshabilita resize desde la derecha
+  dragHorizontalOnly?: boolean; // Si es true, el arrastre solo será horizontal
 }
 
 export interface PGHeaderConfig {}
@@ -74,6 +85,7 @@ export interface PGItemData {
   [key: string]: any; // Otros campos adicionales
   color?: string; // Color asociado al valor
   overlapLevel?: number; // Nivel de superposición para el item
+  interactions?: PGInteractions; // Configuración específica de interacciones para este item
 }
 
 export interface PGUIState {
