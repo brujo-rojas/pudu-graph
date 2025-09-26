@@ -1,71 +1,23 @@
+import { BaseController, type RenderRoot } from "./shared/BaseController";
+import type { 
+  DragControllerParams, 
+  DropCallbackParams, 
+  DropEventParams,
+  DragElementParams,
+  DragPositionParams,
+  PointerUpParams
+} from "./shared/types";
 import type { PGConfig, PGItemData } from "@/types";
-import leftToUnix from "./leftPositionToUnix";
 import { LitElement } from "lit";
+import leftToUnix from "./leftPositionToUnix";
 import { calculateFloatboxPosition } from "./calculateFloatboxPosition";
-
-// Tipos y interfaces agrupados para claridad
-type RenderRoot = typeof LitElement.prototype.renderRoot;
-
-interface DragControllerParams {
-  itemData: PGItemData;
-  config: PGConfig;
-  zoomValue: number;
-  renderRoot: RenderRoot;
-  rowIndex?: number;
-  dragHorizontalOnly?: boolean;
-}
-
-interface DragElementParams {
-  floatbox: HTMLElement;
-  color: string;
-}
-
-interface DragPositionParams {
-  dragElement: HTMLElement;
-  x: number;
-  y: number;
-  dragOffsetX: number;
-  dragOffsetY: number;
-  dragHorizontalOnly: boolean;
-  fixedTop: number;
-}
-
-interface PointerUpParams {
-  e: PointerEvent;
-  config: PGConfig;
-  itemData: PGItemData;
-  dragElement: HTMLElement;
-  renderRoot: RenderRoot;
-  rowIndex: number;
-  zoomValue: number;
-}
-
-interface DropCallbackParams {
-  x: number;
-  y: number;
-  newLeft?: number;
-  date?: Date;
-  width?: number;
-  newStartUnix?: number;
-  newEndUnix?: number;
-}
-
-interface DropEventParams {
-  x: number;
-  y: number;
-  newLeft: number;
-  date: Date;
-  width: number;
-  newStartUnix: number;
-  newEndUnix: number;
-}
 
 /**
  * DragController: añade funcionalidad de drag & drop a un componente LitElement.
  * Usa composición, no herencia. Recibe el contexto y datos por parámetro.
  */
-class DragController {
-  // Estado interno
+export class DragController extends BaseController {
+  // Estado interno específico del drag
   private dragOffsetX = 0;
   private dragOffsetY = 0;
   private fixedTop = 0;
@@ -73,41 +25,16 @@ class DragController {
   private isDragging = false;
   private activePointerId: number | null = null;
   private dragElement: HTMLElement | null = null;
-
-  // Configuración y datos
-  private itemData: PGItemData;
-  private config: PGConfig;
-  private zoomValue: number;
-  private renderRoot: RenderRoot;
-  private rowIndex: number;
   private dragHorizontalOnly: boolean;
 
   // Callback para notificar drop
   private onDropCallback: ((params: DropCallbackParams) => void) | null = null;
 
   constructor(params: DragControllerParams) {
-    this.itemData = params.itemData;
-    this.config = params.config;
-    this.zoomValue = params.zoomValue;
-    this.renderRoot = params.renderRoot;
-    this.rowIndex = params.rowIndex ?? 0;
+    super(params);
     this.dragHorizontalOnly = params.dragHorizontalOnly ?? true;
   }
 
-  /** Actualiza los datos del item */
-  updateItemData(newItemData: PGItemData): void {
-    this.itemData = newItemData;
-  }
-
-  /** Actualiza la configuración */
-  updateConfig(newConfig: PGConfig): void {
-    this.config = newConfig;
-  }
-
-  /** Actualiza el valor de zoom */
-  updateZoomValue(newZoomValue: number): void {
-    this.zoomValue = newZoomValue;
-  }
 
   /** Activa los eventos de drag sobre el componente host. */
   addDragEvents(host: LitElement) {
@@ -317,6 +244,13 @@ class DragController {
   isActive(): boolean {
     return this.isDragging;
   }
+
+  /** Limpia el estado y listeners. */
+  cleanup(): void {
+    this.isDragging = false;
+    this.activePointerId = null;
+    this.dragElement = null;
+    this.onDropCallback = null;
+  }
 }
 
-export default DragController;

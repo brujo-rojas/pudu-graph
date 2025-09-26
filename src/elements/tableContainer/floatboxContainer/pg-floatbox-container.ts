@@ -139,11 +139,10 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
   private renderRow(row: PGRowData, rowIndex: number) {
     
     if (!row.rowData?.length) {
-      return html`<div style="color: orange; padding: 5px;">Fila ${rowIndex}: Sin datos</div>`;
+      return html``;
     }
     
     
-    // Simplificar temporalmente - renderizar elementos básicos
     return row.rowData.map((item, itemIndex) => {
       const overlapLevel = itemIndex % 3; // Solapamiento simple
       
@@ -161,24 +160,13 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
 
   render() {
     
-    // Siempre renderizar algo para verificar que el componente existe
     if (!this.config || !this.data.length) {
-      return html`
-        <div style="color: red; padding: 10px; border: 1px solid red;">
-          FloatboxContainer: No hay datos para renderizar
-          <br>Config: ${!!this.config}
-          <br>Data length: ${this.data.length}
-        </div>
-      `;
+      return html``;
     }
     
-    // Renderizar todas las filas temporalmente para debug
     
     return html`
       <slot></slot>
-      <div style="color: green; padding: 5px; border: 1px solid green;">
-        FloatboxContainer: Renderizando ${this.data.length} filas
-      </div>
       ${this.data.map((row, index) => {
         return this.renderRow(row, index);
       })}
@@ -186,4 +174,3 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
   }
 }
 
-// Log para verificar que el componente se exporta correctamente

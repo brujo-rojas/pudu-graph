@@ -4,8 +4,8 @@ import { connect } from "pwa-helpers";
 import { store } from "@state/store";
 import type { RootState } from "@state/store";
 import type { PGConfig, PGRowData, PGItemData } from "@/types";
-import DragController from "./DragController";
-import ResizeController from "./ResizeController";
+import { DragController } from "./DragController";
+import { ResizeController } from "./ResizeController";
 import { calculateFloatboxPosition } from "./calculateFloatboxPosition";
 import type { PositionResult } from "@/utils/positionCache";
 
@@ -390,7 +390,7 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   render() {
     
     if (!this.config || !this.itemData || !this.uiState) {
-      return html`<div style="color: red; padding: 5px;">Floatbox: Sin datos</div>`;
+      return html``;
     }
     
     

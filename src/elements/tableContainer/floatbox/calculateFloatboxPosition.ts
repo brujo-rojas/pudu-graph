@@ -67,7 +67,12 @@ function calcWidth({
 }
 
 function calcTop({ rowIndex, overlapLevel, itemHeight }: TopParams): number {
-  const result = rowIndex * itemHeight + overlapLevel * 10; // 10px de offset por nivel de overlap
+  // Posicionar en la fila correcta usando rowIndex * itemHeight
+  // Luego distribuir desde arriba de esa fila usando overlapLevel
+  const rowTop = rowIndex * itemHeight; // Posición de la fila
+  const overlapOffset = overlapLevel * 12; // 12px de espacio entre niveles de overlap
+  const result = rowTop + overlapOffset;
+  
   return result;
 }
 
@@ -107,7 +112,7 @@ export function calculateFloatboxPosition({
     height: FLOATBOX_HEIGHT, // Altura fija del floatbox
     top: calcTop({ rowIndex, overlapLevel, itemHeight }),
   };
-
+  
   return result;
 }
 

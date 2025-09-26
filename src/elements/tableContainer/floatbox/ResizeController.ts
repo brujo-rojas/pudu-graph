@@ -1,33 +1,13 @@
-import type { PGConfig, PGItemData } from "@/types";
-import { LitElement } from "lit";
-
-// Tipos y interfaces
-type RenderRoot = typeof LitElement.prototype.renderRoot;
-
-interface ResizeControllerParams {
-  itemData: PGItemData;
-  config: PGConfig;
-  zoomValue: number;
-  renderRoot: RenderRoot;
-  rowIndex?: number;
-  resizeSide?: 'left' | 'right';
-  onResize?: (params: ResizeCallbackParams) => void;
-  onResizeEnd?: () => void;
-}
-
-interface ResizeCallbackParams {
-  newWidth: number;
-  newEndUnix?: number;
-  newStartUnix?: number;
-  newLeft?: number;
-}
+import { BaseController } from "./shared/BaseController";
+import type { ResizeControllerParams, ResizeCallbackParams, ResizeSide } from "./shared/types";
 
 /**
  * ResizeController: Maneja el redimensionamiento de elementos floatbox.
  * Soporta resize desde ambos lados (izquierdo y derecho) con validaciones de límites.
+ * Extiende BaseController para reutilizar funcionalidad común.
  */
-class ResizeController {
-  // Estado interno
+export class ResizeController extends BaseController {
+  // Estado interno específico del resize
   private isResizing = false;
   private resizeStartX = 0;
   private initialWidth = 0;
@@ -35,28 +15,13 @@ class ResizeController {
   private activePointerId: number | null = null;
   private resizeSide: 'left' | 'right' = 'right';
 
-  // Configuración y datos
-  private itemData: PGItemData;
-  private config: PGConfig;
-  private zoomValue: number;
-  private readonly renderRoot: RenderRoot;
-  private readonly rowIndex: number;
-
-  // Callbacks
+  // Callbacks específicos del resize
   private onResizeCallback: ((params: ResizeCallbackParams) => void) | null = null;
   private onResizeEndCallback: (() => void) | null = null;
-
-  // Constantes
-  private static readonly MIN_WIDTH = 10;
-  private static readonly SECONDS_PER_DAY = 86400;
   
 
   constructor(params: ResizeControllerParams) {
-    this.itemData = params.itemData;
-    this.config = params.config;
-    this.zoomValue = params.zoomValue;
-    this.renderRoot = params.renderRoot;
-    this.rowIndex = params.rowIndex ?? 0;
+    super(params);
     this.resizeSide = params.resizeSide ?? 'right';
     
     // Configurar callbacks si se proporcionan
@@ -78,7 +43,7 @@ class ResizeController {
     event.stopPropagation();
     
     this.initializeResizeState(event, floatbox);
-    this.capturePointer(event);
+    this.capturePointerForResize(event);
     this.addPointerEvents();
   }
 
@@ -105,20 +70,6 @@ class ResizeController {
     this.onResizeEndCallback = null;
   }
 
-  /** Actualiza los datos del item */
-  updateItemData(newItemData: PGItemData): void {
-    this.itemData = newItemData;
-  }
-
-  /** Actualiza la configuración */
-  updateConfig(newConfig: PGConfig): void {
-    this.config = newConfig;
-  }
-
-  /** Actualiza el valor de zoom */
-  updateZoomValue(newZoomValue: number): void {
-    this.zoomValue = newZoomValue;
-  }
 
 
   // Métodos de eventos (compatibilidad con interfaz existente)
@@ -180,7 +131,7 @@ class ResizeController {
     }
 
     const { dayWidth = 30 } = this.config.options;
-    const durationSeconds = (newWidth / (dayWidth * this.zoomValue)) * ResizeController.SECONDS_PER_DAY;
+    const durationSeconds = (newWidth / (dayWidth * this.zoomValue)) * BaseController.SECONDS_PER_DAY;
     return this.itemData.startUnix + durationSeconds;
   }
 
@@ -190,7 +141,7 @@ class ResizeController {
     }
 
     const { startUnix = 0, dayWidth = 30 } = this.config.options;
-    const leftOffsetSeconds = (newLeft / (dayWidth * this.zoomValue)) * ResizeController.SECONDS_PER_DAY;
+    const leftOffsetSeconds = (newLeft / (dayWidth * this.zoomValue)) * BaseController.SECONDS_PER_DAY;
     return startUnix + leftOffsetSeconds;
   }
 
@@ -206,16 +157,16 @@ class ResizeController {
       return 1000; // Fallback width
     }
     
-    return (maxDurationSeconds / ResizeController.SECONDS_PER_DAY) * dayWidth * this.zoomValue;
+    return (maxDurationSeconds / BaseController.SECONDS_PER_DAY) * dayWidth * this.zoomValue;
   }
 
   private calculateConstrainedWidth(rawWidth: number): number {
     if (typeof rawWidth !== 'number' || isNaN(rawWidth)) {
-      return ResizeController.MIN_WIDTH;
+      return BaseController.MIN_WIDTH;
     }
 
     const maxWidth = this.calculateMaxWidth();
-    return Math.max(ResizeController.MIN_WIDTH, Math.min(maxWidth, rawWidth));
+    return Math.max(BaseController.MIN_WIDTH, Math.min(maxWidth, rawWidth));
   }
 
   private calculateMinLeft(): number {
@@ -229,7 +180,7 @@ class ResizeController {
 
     const { startUnix = 0, dayWidth = 30 } = this.config.options;
     const maxDurationSeconds = this.itemData.endUnix - startUnix;
-    const maxLeft = (maxDurationSeconds / ResizeController.SECONDS_PER_DAY) * (dayWidth * this.zoomValue) - ResizeController.MIN_WIDTH;
+    const maxLeft = (maxDurationSeconds / BaseController.SECONDS_PER_DAY) * (dayWidth * this.zoomValue) - BaseController.MIN_WIDTH;
     
     return Math.max(0, maxLeft);
   }
@@ -330,11 +281,8 @@ class ResizeController {
     return parseFloat(currentLeft || "0") || 0;
   }
 
-  private capturePointer(event: PointerEvent): void {
-    try {
-      (event.target as HTMLElement).setPointerCapture(event.pointerId);
-    } catch (error) {
-      console.warn("Failed to capture pointer:", error);
+  private capturePointerForResize(event: PointerEvent): void {
+    if (!this.capturePointer(event)) {
       this.isResizing = false;
       this.activePointerId = null;
     }
@@ -345,7 +293,7 @@ class ResizeController {
   }
 
   private finishResize(e: PointerEvent): void {
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    this.releasePointer(e);
     
     const deltaX = e.clientX - this.resizeStartX;
     
@@ -400,10 +348,7 @@ class ResizeController {
     window.removeEventListener("pointercancel", this.onPointerCancel);
   }
 
-  // Selectores de elementos
-  private getHostElement(): HTMLElement | null {
-    return (this.renderRoot as any).host as HTMLElement;
-  }
+  // Selectores de elementos específicos del resize
 
   private getResizeHandleElement(): HTMLElement | null {
     return this.renderRoot.querySelector(".resize-handle") as HTMLElement;
@@ -413,5 +358,3 @@ class ResizeController {
     return this.renderRoot.querySelector(".resize-handle-left") as HTMLElement;
   }
 }
-
-export default ResizeController;
