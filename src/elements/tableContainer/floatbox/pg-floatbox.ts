@@ -4,11 +4,13 @@ import { connect } from "pwa-helpers";
 import { store } from "@state/store";
 import type { RootState } from "@state/store";
 import { updateRowItem } from "@state/dataSlice";
+import { showTooltip, hideTooltip, updateTooltipPosition } from "@state/tooltipSlice";
 import type { PGConfig, PGRowData, PGItemData } from "@/types";
 import { DragController } from "./DragController";
 import { ResizeController } from "./ResizeController";
 import { calculateFloatboxPosition } from "./calculateFloatboxPosition";
 import type { PositionResult } from "@/utils/positionCache";
+// import "./pg-tooltip"; // Ya no necesitamos el tooltip local
 
 /**
  * Componente floatbox que representa un elemento en el timeline.
@@ -259,10 +261,10 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     if (rowData) {
       // Buscar el item en los datos
       const itemIndex = rowData.findIndex(existingItem => {
-        // Si tienen el mismo foo (identificador único)
-        if (existingItem.foo === item.foo) return true;
+        // Si tienen el mismo label (identificador único)
+        if (existingItem.label === item.label) return true;
         
-        // Si tienen el mismo color y startUnix similar (para items sin foo)
+        // Si tienen el mismo color y startUnix similar (para items sin label)
         if (existingItem.color === item.color && 
             Math.abs((existingItem.startUnix || 0) - (item.startUnix || 0)) < 3600) { // 1 hora de diferencia
           return true;
@@ -325,6 +327,41 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
       // También emitir el evento por si acaso
       this.dispatchEvent(event);
     }
+  };
+
+  /**
+   * Maneja el evento de mouse enter para mostrar tooltip
+   */
+  private handleMouseEnter = (event: MouseEvent) => {
+    if (this.itemData?.label) {
+      // Usar la posición del mouse directamente
+      const x = event.clientX;
+      const y = event.clientY;
+      
+      // Dispatch al store
+      store.dispatch(showTooltip({ x, y, text: this.itemData.label }));
+      
+      // Agregar listener para actualizar posición
+      this.addEventListener('mousemove', this.handleMouseMove);
+    }
+  };
+
+  private handleMouseMove = (event: MouseEvent) => {
+    // Actualizar posición del tooltip
+    store.dispatch(updateTooltipPosition({ x: event.clientX, y: event.clientY }));
+  };
+
+  /**
+   * Maneja el evento de mouse leave para ocultar tooltip
+   */
+  private handleMouseLeave = () => {
+    // Remover listener de mousemove
+    this.removeEventListener('mousemove', this.handleMouseMove);
+    
+    // Pequeño delay para evitar que se oculte inmediatamente
+    setTimeout(() => {
+      store.dispatch(hideTooltip());
+    }, 100);
   };
 
   /**
@@ -488,8 +525,9 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
           height: var(--pg-floatbox-height, 10px);
           background-color: ${this.itemData.color || '#3498db'};
         "
+        @mouseenter=${this.handleMouseEnter}
+        @mouseleave=${this.handleMouseLeave}
       >
-        ${this.itemData.foo}
         
         ${showLeftHandle ? html`
           <div

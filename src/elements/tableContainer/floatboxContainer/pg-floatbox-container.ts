@@ -101,10 +101,10 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
       
       // Buscar por múltiples criterios para encontrar el item original
       const itemIndex = rowData.findIndex(existingItem => {
-        // Si tienen el mismo foo (identificador único)
-        if (existingItem.foo === item.foo) return true;
+        // Si tienen el mismo label (identificador único)
+        if (existingItem.label === item.label) return true;
         
-        // Si tienen el mismo color y startUnix similar (para items sin foo)
+        // Si tienen el mismo color y startUnix similar (para items sin label)
         if (existingItem.color === item.color && 
             Math.abs((existingItem.startUnix || 0) - (item.startUnix || 0)) < 3600) { // 1 hora de diferencia
           return true;

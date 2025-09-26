@@ -6,6 +6,7 @@ import type { PGConfig } from "../../types";
 import "./corner/pg-corner";
 import "./floatboxContainer/pg-floatbox-container";
 import "./floatDetails/pg-float-details";
+import "./floatbox/pg-global-tooltip";
 import "./gridBackground/pg-grid-background";
 import "./gridContainer/pg-grid-container";
 import "./header-inputs/pg-header-inputs";
@@ -25,6 +26,16 @@ export class PuduGraphTableContainer extends LitElement {
 
   @property({ type: Object })
   config: PGConfig = { options: {}, data: [] };
+
+  connectedCallback() {
+    super.connectedCallback();
+    
+    // Crear el tooltip global fuera del shadow DOM
+    if (!document.querySelector('pg-global-tooltip')) {
+      const tooltip = document.createElement('pg-global-tooltip');
+      document.body.appendChild(tooltip);
+    }
+  }
 
   render() {
     return html`
