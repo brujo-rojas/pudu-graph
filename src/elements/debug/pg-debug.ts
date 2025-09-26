@@ -13,11 +13,23 @@ export class PgDebug extends connect(store)(LitElement) {
   private config: PGConfig | null = null;
   private data: any[] = [];
   private uiState: PGUIState = {};
+  private tooltip: any = null;
+  private floatDetail: any = null;
+  private mousePosition: any = null;
+  private gridSelection: any = null;
 
   stateChanged(state: RootState) {
+    // Limpiar consola
+    console.clear();
+    
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;
+    this.tooltip = state.tooltip;
+    this.floatDetail = state.floatDetail;
+    this.mousePosition = state.mousePosition;
+    this.gridSelection = state.gridSelection;
+    
     this.requestUpdate();
   }
 
@@ -37,6 +49,22 @@ export class PgDebug extends connect(store)(LitElement) {
         <section>
           <h3>Data</h3>
           <pre> ${JSON.stringify(this.data, null, 2)}</pre>
+        </section>
+        <section>
+          <h3>Tooltip</h3>
+          <pre> ${JSON.stringify(this.tooltip, null, 2)}</pre>
+        </section>
+        <section>
+          <h3>Float Detail</h3>
+          <pre> ${JSON.stringify(this.floatDetail, null, 2)}</pre>
+        </section>
+        <section>
+          <h3>Mouse Position</h3>
+          <pre> ${JSON.stringify(this.mousePosition, null, 2)}</pre>
+        </section>
+        <section>
+          <h3>Grid Selection (${this.gridSelection?.selections?.length || 0} cells)</h3>
+          <pre> ${JSON.stringify(this.gridSelection, null, 2)}</pre>
         </section>
       </article>
     </div> `;

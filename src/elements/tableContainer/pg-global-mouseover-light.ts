@@ -4,6 +4,7 @@ import { connect } from "pwa-helpers";
 import { store } from "@state/store";
 import type { RootState } from "@state/store";
 import { showMouseoverLight, updateMouseoverLightPosition, hideMouseoverLight, setTableRect, updateMouseoverInfo } from "@state/mouseoverLightSlice";
+import { toggleGridSelection } from "@state/gridSelectionSlice";
 import { DAY_SECONDS } from "@/utils/CONSTANTS";
 import { DAY_WIDTH } from "@/utils/DEFAULTS";
 import { getItemHeight } from "@/utils/floatboxHeight";
@@ -45,6 +46,7 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
     // Agregar listeners globales
     document.addEventListener('mousemove', this.handleGlobalMouseMove);
     document.addEventListener('mouseleave', this.handleGlobalMouseLeave);
+    document.addEventListener('click', this.handleGlobalClick);
     window.addEventListener('resize', this.updateTableRect);
     
     // Buscar el elemento de la tabla después de un pequeño delay para asegurar que el DOM esté listo
@@ -59,6 +61,7 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
     // Remover listeners
     document.removeEventListener('mousemove', this.handleGlobalMouseMove);
     document.removeEventListener('mouseleave', this.handleGlobalMouseLeave);
+    document.removeEventListener('click', this.handleGlobalClick);
     window.removeEventListener('resize', this.updateTableRect);
   }
 
@@ -348,6 +351,36 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
     // No llamar requestUpdate() para evitar re-renderizados innecesarios
     // Las líneas se manejan directamente en el DOM
   }
+
+  private handleGlobalClick = (event: MouseEvent) => {
+    if (!this.tableElement || !this.config || !this.data) return;
+    
+    const rect = this.tableElement.getBoundingClientRect();
+    const isInsideTable = event.clientX >= rect.left && 
+                         event.clientX <= rect.right && 
+                         event.clientY >= rect.top && 
+                         event.clientY <= rect.bottom;
+    
+    if (isInsideTable) {
+      const positionInfo = this.calculateDayAndItem(event, rect);
+      if (positionInfo) {
+        const { dayInfo, itemInfo } = positionInfo;
+        
+        // Select grid cell
+             store.dispatch(toggleGridSelection({
+               rowIndex: itemInfo.itemIndex,
+               dayIndex: dayInfo.dayIndex
+             }));
+        
+        console.log('🎯 Grid Selection:', {
+          rowIndex: itemInfo.itemIndex,
+          dayIndex: dayInfo.dayIndex,
+          rowLabel: this.data[itemInfo.itemIndex]?.label,
+          date: new Date((this.config.options.startUnix + dayInfo.dayIndex * 86400) * 1000).toISOString().split('T')[0]
+        });
+      }
+    }
+  };
 
   render() {
     // Las líneas ahora se manejan directamente en el DOM del grid container

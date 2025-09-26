@@ -9,6 +9,7 @@ import "./floatboxContainer/pg-float-icon-container";
 import "./floatbox/pg-global-tooltip";
 import "./floatbox/pg-global-float-detail";
 import "./pg-global-mouseover-light";
+import "./pg-grid-selection";
 import "./gridBackground/pg-grid-background";
 import "./gridContainer/pg-grid-container";
 import "./header-inputs/pg-header-inputs";
@@ -71,6 +72,7 @@ export class PuduGraphTableContainer extends LitElement {
         <pg-grid-container>
           <pg-grid-background></pg-grid-background>
           <pg-selection-light></pg-selection-light>
+          <pg-grid-selection></pg-grid-selection>
           <pg-floatbox-container></pg-floatbox-container>
           <pg-float-icon-container></pg-float-icon-container>
         </pg-grid-container>

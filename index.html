@@ -8,10 +8,52 @@
     <script type="module" src="/src/pudu-graph.ts"></script>
   </head>
   <body>
+    <div style="padding: 20px; background: #f5f5f5; border-bottom: 1px solid #ddd;">
+      <h2>Pudu Graph - API Example</h2>
+      <p>Click on grid cells to select them, then use the button below to clear all selections:</p>
+      <button id="clearSelections" style="
+        padding: 10px 20px; 
+        background: #e74c3c; 
+        color: white; 
+        border: none; 
+        border-radius: 4px; 
+        cursor: pointer;
+        font-size: 14px;
+        margin-right: 10px;
+      ">Clear Grid Selections</button>
+      <span id="selectionCount" style="color: #666; font-size: 14px;">0 cells selected</span>
+    </div>
+    
     <pudu-graph loading="true"></pudu-graph>
 
     <script type="module">
       const graphElement = document.querySelector("pudu-graph");
+      const clearButton = document.getElementById("clearSelections");
+      const selectionCount = document.getElementById("selectionCount");
+      
+      // Función para limpiar las selecciones del grid
+      function clearGridSelections() {
+        if (graphElement && graphElement.clearGridSelections) {
+          graphElement.clearGridSelections();
+          console.log("Grid selections cleared via API");
+        } else {
+          console.warn("clearGridSelections method not available on graph element");
+        }
+      }
+      
+      // Función para obtener el conteo de selecciones
+      function updateSelectionCount() {
+        if (graphElement && graphElement.getGridSelectionCount) {
+          const count = graphElement.getGridSelectionCount();
+          selectionCount.textContent = `${count} cells selected`;
+        }
+      }
+      
+      // Event listener para el botón
+      clearButton.addEventListener("click", clearGridSelections);
+      
+      // Actualizar el conteo cada 500ms
+      setInterval(updateSelectionCount, 500);
       const config = {
         options: {
           startUnix: Date.parse("2025-05-20T00:00:00Z") / 1000,

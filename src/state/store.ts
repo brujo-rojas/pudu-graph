@@ -5,6 +5,7 @@ import uiStateReducer from "./uiStateSlice";
 import tooltipReducer from "./tooltipSlice";
 import floatDetailReducer from "./floatDetailSlice";
 import mousePositionReducer from "./mouseoverLightSlice";
+import gridSelectionReducer from "./gridSelectionSlice";
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     tooltip: tooltipReducer,
     floatDetail: floatDetailReducer,
     mousePosition: mousePositionReducer,
+    gridSelection: gridSelectionReducer,
   },
 });
 
