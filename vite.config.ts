@@ -21,7 +21,7 @@ export default defineConfig({
     },
     outDir: 'dist',
     rollupOptions: {
-      external: ['lit', 'react', 'react-dom', '@lit-labs/react'],
+      external: process.env.BUILD_TARGET === 'standalone' ? [] : ['lit', 'react', 'react-dom', '@lit-labs/react'],
       output: {
         // Optimizaciones para Vercel
         manualChunks: undefined,

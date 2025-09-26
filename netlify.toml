@@ -1,6 +1,6 @@
 [build]
   # Build command
-  command = "npm run vercel-build"
+  command = "npm run netlify-build"
   
   # Directory to publish
   publish = "dist"
