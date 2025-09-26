@@ -5,8 +5,8 @@ import type { PGConfig } from "../../types";
 
 import "./corner/pg-corner";
 import "./floatboxContainer/pg-floatbox-container";
-import "./floatDetails/pg-float-details";
 import "./floatbox/pg-global-tooltip";
+import "./floatbox/pg-global-float-detail";
 import "./gridBackground/pg-grid-background";
 import "./gridContainer/pg-grid-container";
 import "./header-inputs/pg-header-inputs";
@@ -35,6 +35,12 @@ export class PuduGraphTableContainer extends LitElement {
       const tooltip = document.createElement('pg-global-tooltip');
       document.body.appendChild(tooltip);
     }
+    
+    // Crear el float detail global fuera del shadow DOM
+    if (!document.querySelector('pg-global-float-detail')) {
+      const floatDetail = document.createElement('pg-global-float-detail');
+      document.body.appendChild(floatDetail);
+    }
   }
 
   render() {
@@ -57,7 +63,6 @@ export class PuduGraphTableContainer extends LitElement {
           <pg-grid-background></pg-grid-background>
           <pg-mouseover-light></pg-mouseover-light>
           <pg-selection-light></pg-selection-light>
-          <pg-float-details></pg-float-details>
           <pg-floatbox-container></pg-floatbox-container>
         </pg-grid-container>
       </pg-scrollable-container>

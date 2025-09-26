@@ -3,6 +3,7 @@ import configReducer from "./configSlice";
 import dataReducer from "./dataSlice";
 import uiStateReducer from "./uiStateSlice";
 import tooltipReducer from "./tooltipSlice";
+import floatDetailReducer from "./floatDetailSlice";
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     data: dataReducer,
     uiState: uiStateReducer,
     tooltip: tooltipReducer,
+    floatDetail: floatDetailReducer,
   },
 });
 

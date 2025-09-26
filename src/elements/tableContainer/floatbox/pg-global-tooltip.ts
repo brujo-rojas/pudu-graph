@@ -22,9 +22,9 @@ export class PGGlobalTooltip extends connect(store)(LitElement) {
     .tooltip {
       background-color: rgba(0, 0, 0, 0.9);
       color: white;
-      padding: 8px 12px;
+      padding: 3px 12px;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 500;
       white-space: nowrap;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -32,8 +32,8 @@ export class PGGlobalTooltip extends connect(store)(LitElement) {
       overflow: hidden;
       text-overflow: ellipsis;
       position: fixed;
-      transform: translateX(-50%) translateY(-100%);
-      margin-top: -8px;
+      transform: none;
+      z-index: 100000;
     }
 
     .tooltip::after {
@@ -72,6 +72,8 @@ export class PGGlobalTooltip extends connect(store)(LitElement) {
     if (!this.tooltipState.isVisible || !this.tooltipState.text) {
       return html``;
     }
+
+    // Logs removidos para producción
 
     return html`
       <div 

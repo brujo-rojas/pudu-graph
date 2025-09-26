@@ -4,7 +4,8 @@ import { connect } from "pwa-helpers";
 import { store } from "@state/store";
 import type { RootState } from "@state/store";
 import { updateRowItem } from "@state/dataSlice";
-import { showTooltip, hideTooltip, updateTooltipPosition } from "@state/tooltipSlice";
+import { showTooltip, hideTooltip, updateTooltipPosition, updateTooltipPositionFromElement } from "@state/tooltipSlice";
+import { showFloatDetail, hideFloatDetail, updateFloatDetailPosition } from "@state/floatDetailSlice";
 import type { PGConfig, PGRowData, PGItemData } from "@/types";
 import { DragController } from "./DragController";
 import { ResizeController } from "./ResizeController";
@@ -333,13 +334,38 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
    * Maneja el evento de mouse enter para mostrar tooltip
    */
   private handleMouseEnter = (event: MouseEvent) => {
+    // Logs removidos para producción
+    
     if (this.itemData?.label) {
-      // Usar la posición del mouse directamente
-      const x = event.clientX;
-      const y = event.clientY;
+      // Calcular posición del elemento interno (div con clase .pg-floatbox)
+      const innerElement = this.shadowRoot?.querySelector('.pg-floatbox') as HTMLElement;
+      const rect = innerElement ? innerElement.getBoundingClientRect() : this.getBoundingClientRect();
       
-      // Dispatch al store
-      store.dispatch(showTooltip({ x, y, text: this.itemData.label }));
+      // Siempre usar las coordenadas del elemento para posicionar el tooltip
+      // Si el elemento no tiene dimensiones, usar las coordenadas del mouse como fallback
+      let elementX, elementY;
+      if (rect.width === 0 || rect.height === 0) {
+        // Element has no dimensions, using mouse position as fallback
+        elementX = event.clientX;
+        elementY = event.clientY - 20; // 20px arriba del mouse
+      } else {
+        // Posicionar alineado a la izquierda y más arriba del elemento
+        elementX = rect.left; // Alineado a la izquierda
+        elementY = rect.top - 30; // 30px arriba del elemento
+      }
+      
+      console.log('🎯 Tooltip Position:', `x: ${elementX}, y: ${elementY}`, 'Element dimensions:', `w: ${rect.width}, h: ${rect.height}`, 'Using inner element:', !!innerElement);
+    
+      // Dispatch al store para tooltip con posición del elemento
+      store.dispatch(showTooltip({ 
+        x: elementX, 
+        y: elementY, 
+        text: this.itemData.label, 
+        targetElementId: this.id || `floatbox-${this.rowIndex}-${this.overlapLevel}`
+      }));
+      
+      // Dispatch al store para float detail
+      store.dispatch(showFloatDetail({ x: event.clientX, y: event.clientY, content: this.itemData.label }));
       
       // Agregar listener para actualizar posición
       this.addEventListener('mousemove', this.handleMouseMove);
@@ -347,8 +373,9 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   };
 
   private handleMouseMove = (event: MouseEvent) => {
-    // Actualizar posición del tooltip
-    store.dispatch(updateTooltipPosition({ x: event.clientX, y: event.clientY }));
+    // Solo actualizar la posición del float detail (que sí sigue el mouse)
+    // El tooltip se posiciona sobre el elemento, no sigue el mouse
+    store.dispatch(updateFloatDetailPosition({ x: event.clientX, y: event.clientY }));
   };
 
   /**
@@ -361,6 +388,7 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     // Pequeño delay para evitar que se oculte inmediatamente
     setTimeout(() => {
       store.dispatch(hideTooltip());
+      store.dispatch(hideFloatDetail());
     }, 100);
   };
 
