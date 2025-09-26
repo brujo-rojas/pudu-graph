@@ -18,6 +18,7 @@ import type { RootState } from "@state/store";
 import { setConfig } from "./state/configSlice";
 import { setRows } from "./state/dataSlice";
 import debounce from "./utils/debounce";
+import { assignUniqueIds } from "./utils/assignIds";
 
 @customElement("pudu-graph")
 export class PuduGraph extends connect(store)(LitElement) {
@@ -38,8 +39,14 @@ export class PuduGraph extends connect(store)(LitElement) {
   }
 
   public initialize(newConfig: PGConfig) {
-    store.dispatch(setConfig(newConfig));
-    store.dispatch(setRows(newConfig.data));
+    // Asignar IDs únicos a todos los elementos
+    const configWithIds = {
+      ...newConfig,
+      data: assignUniqueIds(newConfig.data)
+    };
+    
+    store.dispatch(setConfig(configWithIds));
+    store.dispatch(setRows(configWithIds.data));
     this.debouncedRequestUpdate();
   }
 

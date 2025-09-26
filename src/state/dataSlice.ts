@@ -38,12 +38,21 @@ const dataSlice = createSlice({
         state[rowIndex].rowData[itemIndex] = itemData;
       }
     },
+    updateRowIcon(
+      state,
+      action: PayloadAction<{ rowIndex: number; itemIndex: number; itemData: any }>
+    ) {
+      const { rowIndex, itemIndex, itemData } = action.payload;
+      if (state[rowIndex] && state[rowIndex].iconData && state[rowIndex].iconData![itemIndex]) {
+        state[rowIndex].iconData![itemIndex] = itemData;
+      }
+    },
     clearRows() {
       return [];
     },
   },
 });
 
-export const { setRows, addRow, updateRow, removeRow, updateRowItem, clearRows } =
+export const { setRows, addRow, updateRow, removeRow, updateRowItem, updateRowIcon, clearRows } =
   dataSlice.actions;
 export default dataSlice.reducer;

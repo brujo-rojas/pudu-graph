@@ -10,7 +10,7 @@ import type {
 import type { PGConfig, PGItemData } from "@/types";
 import { LitElement } from "lit";
 import leftToUnix from "./leftPositionToUnix";
-import { calculateFloatboxPosition } from "./calculateFloatboxPosition";
+import { calculateFloatboxPosition, calculateFloatIconPosition } from "./calculateFloatboxPosition";
 
 /**
  * DragController: añade funcionalidad de drag & drop a un componente LitElement.
@@ -22,6 +22,7 @@ export class DragController extends BaseController {
   private dragOffsetY = 0;
   private fixedTop = 0;
   private dragStartBoxLeft = 0;
+  private dragStartTableLeft = 0; // Posición inicial del elemento en la tabla
   private isDragging = false;
   private activePointerId: number | null = null;
   private dragElement: HTMLElement | null = null;
@@ -29,6 +30,34 @@ export class DragController extends BaseController {
 
   // Callback para notificar drop
   private onDropCallback: ((params: DropCallbackParams) => void) | null = null;
+
+  /**
+   * Determina si el elemento es un icono (sin endUnix) o un floatbox (con endUnix)
+   */
+  private isIcon(): boolean {
+    return !this.itemData?.endUnix;
+  }
+
+  /**
+   * Calcula la posición del elemento usando la función correcta según su tipo
+   */
+  private calculateElementPosition(): { left: number; top: number; width: number; height: number } {
+    if (this.isIcon()) {
+      return calculateFloatIconPosition({
+        config: this.config,
+        itemData: this.itemData,
+        rowIndex: this.rowIndex,
+        zoomValue: this.zoomValue,
+      });
+    } else {
+      return calculateFloatboxPosition({
+        config: this.config,
+        itemData: this.itemData,
+        rowIndex: this.rowIndex,
+        zoomValue: this.zoomValue,
+      });
+    }
+  }
 
   constructor(params: DragControllerParams) {
     super(params);
@@ -60,14 +89,25 @@ export class DragController extends BaseController {
     this.dragOffsetY = event.clientY - rect.top;
     this.fixedTop = rect.top;
     this.dragStartBoxLeft = rect.left;
+    
+    // Guardar la posición inicial del elemento en la tabla
+    const { left: originalLeft } = this.calculateElementPosition();
+    this.dragStartTableLeft = originalLeft;
+    
     this.isDragging = true;
     this.activePointerId = event.pointerId;
+
+    console.log('🎯 Drag Start:', this.itemData?.label, '|', 
+      'Date:', new Date(this.itemData?.startUnix * 1000).toISOString().split('T')[0],
+      '| TableLeft:', Math.round(originalLeft), 'px');
+
     (event.target as HTMLElement).setPointerCapture(event.pointerId);
     this.dragElement = this.createDragElement({
       floatbox,
       color: this.itemData?.color || "red",
     });
     document.body.appendChild(this.dragElement);
+
     this.updateDragElementPosition({
       dragElement: this.dragElement,
       x: event.clientX,
@@ -98,6 +138,7 @@ export class DragController extends BaseController {
   private onPointerMove = (e: PointerEvent) => {
     if (e.pointerId !== this.activePointerId) return;
     if (!this.isDragging || !this.dragElement) return;
+    
     this.updateDragElementPosition({
       dragElement: this.dragElement,
       x: e.clientX,
@@ -139,17 +180,31 @@ export class DragController extends BaseController {
     const floatbox = this.getFloatBoxChildElement(this.renderRoot);
     if (!floatbox || !this.dragElement) return;
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    
+    // Calcular el delta en píxeles de pantalla
     const dragRect = this.dragElement.getBoundingClientRect();
-    const { left: originalLeft } = calculateFloatboxPosition({
-      config: this.config,
-      itemData: this.itemData,
-      rowIndex: this.rowIndex,
-      zoomValue: this.zoomValue,
-    });
-    const newLeft = originalLeft + (dragRect.left - this.dragStartBoxLeft);
+    const deltaPixels = dragRect.left - this.dragStartBoxLeft;
+    
+    // Convertir el delta de píxeles de pantalla a píxeles de tabla
+    // Esto es necesario porque el zoom y la posición de la tabla pueden afectar la conversión
+    const { dayWidth = 30 } = this.config.options;
+    const deltaTablePixels = deltaPixels / this.zoomValue;
+    
+    // Calcular la nueva posición en la tabla usando la posición inicial guardada
+    const newLeft = this.dragStartTableLeft + deltaTablePixels;
+    
     const rect = floatbox.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    
+    // Debug: rastrear cálculo de posición
+    console.log('🎯 Drag Calculation:', this.itemData?.label, '|',
+      'StartTableLeft:', Math.round(this.dragStartTableLeft), 'px |',
+      'DeltaPixels:', Math.round(deltaPixels), 'px |',
+      'DeltaTablePixels:', Math.round(deltaTablePixels), 'px |',
+      'NewLeft:', Math.round(newLeft), 'px |',
+      'Zoom:', this.zoomValue);
+    
     // Calcula la nueva posición sin modificar el objeto original
     const oldStart = this.itemData.startUnix || 0;
     const oldEnd = this.itemData.endUnix || 0;
@@ -158,15 +213,15 @@ export class DragController extends BaseController {
       left: newLeft,
       zoomValue: this.zoomValue,
     });
+    
+    console.log('🎯 Date Calculation:', this.itemData?.label, '|',
+      'OldStart:', new Date(oldStart * 1000).toISOString().split('T')[0], '|',
+      'NewStart:', new Date(newStart * 1000).toISOString().split('T')[0], '|',
+      'Delta:', Math.round((newStart - oldStart) / 86400), 'days');
     const newEnd = oldEnd + (newStart - oldStart);
     // Recalcula el ancho en base a la nueva posición
     const updatedItemData = { ...this.itemData, startUnix: newStart, endUnix: newEnd };
-    const { width } = calculateFloatboxPosition({
-      config: this.config,
-      itemData: updatedItemData,
-      rowIndex: this.rowIndex,
-      zoomValue: this.zoomValue,
-    });
+    const { width } = this.calculateElementPosition();
     this.notifyDrop({ 
       x, 
       y, 
@@ -200,8 +255,10 @@ export class DragController extends BaseController {
 
   /** Obtiene el elemento floatbox del renderRoot. */
   private getFloatBoxChildElement(renderRoot: RenderRoot): HTMLElement | null {
-    // Buscar tanto floatbox como float-icon
-    return renderRoot.querySelector(".pg-floatbox, .pg-float-icon") as HTMLElement;
+    // Buscar el elemento específico según el tipo de componente
+    const floatbox = renderRoot.querySelector(".pg-floatbox") as HTMLElement;
+    const floatIcon = renderRoot.querySelector(".pg-float-icon") as HTMLElement;
+    return floatbox || floatIcon;
   }
 
   /** Crea el elemento visual para el drag. */
@@ -244,6 +301,11 @@ export class DragController extends BaseController {
   /** Verifica si hay un drag activo. */
   isActive(): boolean {
     return this.isDragging;
+  }
+
+  /** Actualiza los datos del item. */
+  updateItemData(newItemData: PGItemData): void {
+    this.itemData = newItemData;
   }
 
   /** Limpia el estado y listeners. */

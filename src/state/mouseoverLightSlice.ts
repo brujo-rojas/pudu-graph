@@ -67,7 +67,7 @@ export const mouseoverLightSlice = createSlice({
       state.isVisible = false;
       state.tableRect = null;
     },
-    setTableRect: (state, action: PayloadAction<DOMRect>) => {
+    setTableRect: (state, action: PayloadAction<{left: number; top: number; width: number; height: number; right: number; bottom: number; x: number; y: number}>) => {
       const rect = action.payload;
       state.tableRect = {
         left: rect.left,

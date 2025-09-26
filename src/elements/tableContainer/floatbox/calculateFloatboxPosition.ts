@@ -187,11 +187,15 @@ export function calculateFloatIconPosition({
   const itemHeight = getItemHeight(config);
   const floatboxHeight = getFloatboxHeight(config);
 
+  // Para iconos, centrar verticalmente en la fila, ignorando overlapLevel
+  const rowTop = rowIndex * itemHeight;
+  const iconTop = rowTop + (itemHeight - floatboxHeight) / 2; // Centrar verticalmente
+
   const result = {
     left: calcLeft({ startUnix, itemStart, dayWidth, zoom: zoomValue }),
     width: floatboxHeight, // Para iconos, width = height (círculo)
     height: floatboxHeight,
-    top: calcTop({ rowIndex, overlapLevel, itemHeight, floatboxHeight }),
+    top: iconTop,
   };
   
   return result;

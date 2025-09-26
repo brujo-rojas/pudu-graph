@@ -86,6 +86,7 @@ export interface PGRowData {
 }
 
 export interface PGItemData {
+  id?: string; // Identificador único automático
   startUnix: number; // Timestamp de inicio en milisegundos
   endUnix?: number; // Timestamp de fin en milisegundos (opcional para iconos)
   value?: number; // Valor asociado a la fecha

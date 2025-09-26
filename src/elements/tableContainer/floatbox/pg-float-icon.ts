@@ -5,7 +5,7 @@ import { store } from '@/state/store';
 import type { RootState } from '@/state/store';
 import { showTooltip, hideTooltip, updateTooltipPosition, updateTooltipPositionFromElement } from '@/state/tooltipSlice';
 import { showFloatDetail, hideFloatDetail, updateFloatDetailPosition } from '@/state/floatDetailSlice';
-import { updateRowItem } from '@/state/dataSlice';
+import { updateRowItem, updateRowIcon } from '@/state/dataSlice';
 import type { PGConfig, PGItemData, PGUIState } from '@/types';
 import { calculateFloatIconPosition } from './calculateFloatboxPosition';
 import { DragController } from './DragController';
@@ -29,14 +29,14 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
       cursor: pointer;
       transition: all 0.2s ease;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-      z-index: 1;
+      z-index: 10;
       user-select: none;
     }
 
     .pg-float-icon:hover {
       transform: scale(1.2);
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-      z-index: 2;
+      z-index: 11;
     }
 
     .pg-float-icon.dragging {
@@ -61,11 +61,6 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
 
   connectedCallback() {
     super.connectedCallback();
-    console.log('🎯 Float Icon: connectedCallback llamado', {
-      itemData: this.itemData,
-      rowIndex: this.rowIndex,
-      overlapLevel: this.overlapLevel
-    });
     this.initializeControllers();
   }
 
@@ -75,15 +70,12 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
   }
 
   stateChanged(state: RootState): void {
-    console.log('🎯 Float Icon: stateChanged llamado', {
-      hasConfig: !!state.config,
-      hasUIState: !!state.uiState,
-      itemData: this.itemData,
-      state: state
-    });
     this.config = state.config;
     this.uiState = state.uiState;
     this.updateStyles();
+    
+    // Re-inicializar controllers cuando cambie el estado
+    this.initializeControllers();
   }
 
   private initializeControllers(): void {
@@ -107,7 +99,6 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
       this.dragController.addDragEvents(this);
       this.dragController.onDrop(this.handleDrop);
     }
-
   }
 
   private cleanupControllers(): void {
@@ -127,6 +118,10 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
     
     // Para iconos, solo actualizamos startUnix
     const newStartUnix = params.newStartUnix ?? (params.date ? Math.floor(params.date.getTime() / 1000) : this.itemData.startUnix);
+    
+    console.log('🎯 Drag End:', this.itemData.label, '|',
+      'Original:', new Date(this.itemData.startUnix * 1000).toISOString().split('T')[0], '|',
+      'New:', new Date(newStartUnix * 1000).toISOString().split('T')[0]);
     
     // Actualizar datos
     const updatedItem = { 
@@ -178,28 +173,27 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
     const state = store.getState();
     const iconData = state.data[rowIndex]?.iconData;
     
-    if (iconData) {
-      // Buscar el item en los datos
-      const itemIndex = iconData.findIndex(existingItem => {
-        // Si tienen el mismo label (identificador único)
-        if (existingItem.label === item.label) return true;
-        
-        // Si tienen el mismo color y startUnix similar (para items sin label)
-        if (existingItem.color === item.color && 
-            Math.abs((existingItem.startUnix || 0) - (item.startUnix || 0)) < 3600) { // 1 hora de diferencia
-          return true;
-        }
-        
-        return false;
-      });
+    if (iconData && item.id) {
+      // Buscar el item por ID único
+      const itemIndex = iconData.findIndex(existingItem => existingItem.id === item.id);
       
       if (itemIndex !== -1) {
-        store.dispatch(updateRowItem({
+        console.log('🎯 Store Update:', item.label || 'Sin label', '|', 
+          'ID:', item.id, '|',
+          'Row:', rowIndex, 'Index:', itemIndex, '|',
+          'OldDate:', new Date(iconData[itemIndex].startUnix * 1000).toISOString().split('T')[0], '|',
+          'NewDate:', new Date(item.startUnix * 1000).toISOString().split('T')[0]);
+        
+        store.dispatch(updateRowIcon({
           rowIndex,
           itemIndex,
           itemData: { ...item }
         }));
+      } else {
+        console.warn('🎯 Store Update Failed: No se encontró el item con ID', item.id, 'en row', rowIndex);
       }
+    } else {
+      console.warn('🎯 Store Update Failed: Item sin ID o iconData no disponible', item);
     }
   }
 
@@ -250,7 +244,9 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
     const position = this.calculatePosition();
     const styleHash = `${position.left}-${position.top}-${position.width}-${position.height}`;
     
-    if (styleHash === this.lastStyleHash) return;
+    if (styleHash === this.lastStyleHash) {
+      return;
+    }
     
     this.lastStyleHash = styleHash;
     
@@ -315,32 +311,15 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
   };
 
   render() {
-    console.log('🎯 Float Icon: render llamado', {
-      hasConfig: !!this.config,
-      hasItemData: !!this.itemData,
-      hasUIState: !!this.uiState,
-      itemData: this.itemData,
-      config: this.config,
-      uiState: this.uiState
-    });
-    
     if (!this.config || !this.itemData || !this.uiState) {
-      console.log('🎯 Float Icon: No renderizando - faltan datos', {
-        config: this.config,
-        itemData: this.itemData,
-        uiState: this.uiState
-      });
       return html``;
     }
 
+    // Actualizar estilos antes de renderizar
+    this.updateStyles();
+
     const color = this.itemData.color || '#3498db';
     const label = this.itemData.label || '';
-
-    console.log('🎯 Float Icon: Renderizando icono', {
-      color,
-      label,
-      startUnix: this.itemData.startUnix
-    });
 
     return html`
       <div 

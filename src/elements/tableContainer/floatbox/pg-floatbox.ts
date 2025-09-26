@@ -162,6 +162,7 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
         zoomValue: this.uiState.zoomValue || 1,
         renderRoot: this.renderRoot,
         rowIndex: this.rowIndex,
+        dragHorizontalOnly: interactions.dragHorizontalOnly ?? true
       });
       this.dragController.addDragEvents(this);
       this.dragController.onDrop(this.handleDrop);
@@ -207,7 +208,6 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     const newStartUnix = params.newStartUnix ?? (params.date ? Math.floor(params.date.getTime() / 1000) : this.itemData.startUnix);
     const newEndUnix = params.newEndUnix ?? this.itemData.endUnix;
     
-    
     // Actualizar datos con inicio y fin
     const updatedItem = { 
       ...this.itemData, 
@@ -215,7 +215,6 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
       endUnix: newEndUnix
     };
     this.itemData = updatedItem;
-    
     
     // Actualizar solo los datos de los controladores
     this.updateControllerData();
@@ -443,7 +442,6 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   ): void {
     const styleHash = `${left}-${top}-${width}-${height}`;
 
-
     // No actualizar estilos si hay un resize o drag activo
     if (this.resizeController?.isActive() || this.dragController?.isActive()) {
       return;
@@ -523,11 +521,9 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   }
 
   render() {
-    
     if (!this.config || !this.itemData || !this.uiState) {
       return html``;
     }
-    
     
     // Usar posición pre-calculada si está disponible
     if (this.position) {
@@ -542,7 +538,16 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     const showResizeHandles = interactions?.enableResize === true;
     const showLeftHandle = showResizeHandles && (interactions?.enableLeftResize === true);
     const showRightHandle = showResizeHandles && (interactions?.enableRightResize === true);
+
     
+    const currentStyles = {
+      left: this.style.getPropertyValue('--pg-floatbox-left') || '0px',
+      top: this.style.getPropertyValue('--pg-floatbox-top') || '0px',
+      width: this.style.getPropertyValue('--pg-floatbox-width') || '100px',
+      height: this.style.getPropertyValue('--pg-floatbox-height') || '10px'
+    };
+
+
     return html`
       <div 
         class="pg-floatbox"

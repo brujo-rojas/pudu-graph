@@ -144,8 +144,18 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
   private updateTableRect = () => {
     if (this.tableElement) {
       const rect = this.tableElement.getBoundingClientRect();
-      store.dispatch(setTableRect(rect));
-    } else {
+      // Convertir DOMRect a objeto serializable
+      const serializableRect = {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+        right: rect.right,
+        bottom: rect.bottom,
+        x: rect.x,
+        y: rect.y
+      };
+      store.dispatch(setTableRect(serializableRect));
     }
   };
 
@@ -226,6 +236,9 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
     };
   }
 
+  private lastDayIndex = -1;
+  private lastItemIndex = -1;
+
   private handleGlobalMouseMove = (event: MouseEvent) => {
     if (!this.tableElement || !this.verticalLine || !this.horizontalLine || !this.gridHoverElement) {
       return;
@@ -259,8 +272,14 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
       if (positionInfo) {
         const { dayInfo, itemInfo } = positionInfo;
         
-        // Actualizar el store con la información
-        store.dispatch(updateMouseoverInfo({ dayInfo, itemInfo }));
+        // Solo actualizar el store si cambió el día o item
+        if (dayInfo.dayIndex !== this.lastDayIndex || itemInfo.itemIndex !== this.lastItemIndex) {
+          this.lastDayIndex = dayInfo.dayIndex;
+          this.lastItemIndex = itemInfo.itemIndex;
+          
+          // Actualizar el store con la información
+          store.dispatch(updateMouseoverInfo({ dayInfo, itemInfo }));
+        }
       }
 
       // Calcular y posicionar el grid hover
@@ -279,6 +298,10 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
       if (this.gridHoverElement) {
         this.gridHoverElement.style.display = 'none';
       }
+      
+      // Resetear índices cuando salimos de la tabla
+      this.lastDayIndex = -1;
+      this.lastItemIndex = -1;
     }
   };
 
@@ -291,6 +314,10 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
     if (this.gridHoverElement) {
       this.gridHoverElement.style.display = 'none';
     }
+    
+    // Resetear índices
+    this.lastDayIndex = -1;
+    this.lastItemIndex = -1;
     
     // Limpiar la información del store
     store.dispatch(updateMouseoverInfo({ 
@@ -312,8 +339,8 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
       this.classList.remove('show');
     }
     
-    
-    this.requestUpdate();
+    // No llamar requestUpdate() para evitar re-renderizados innecesarios
+    // Las líneas se manejan directamente en el DOM
   }
 
   render() {

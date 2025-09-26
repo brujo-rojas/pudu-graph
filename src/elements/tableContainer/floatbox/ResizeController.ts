@@ -61,6 +61,11 @@ export class ResizeController extends BaseController {
     return this.isResizing;
   }
 
+  /** Actualiza los datos del item. */
+  public updateItemData(newItemData: any): void {
+    this.itemData = newItemData;
+  }
+
   /** Limpia el estado y callbacks. */
   public cleanup(): void {
     this.isResizing = false;

@@ -4,7 +4,7 @@ import { connect } from 'pwa-helpers';
 import { store } from '@/state/store';
 import type { RootState } from '@/state/store';
 import type { PGConfig, PGRowData, PGUIState } from '@/types';
-import { updateRowItem } from '@/state/dataSlice';
+import { updateRowItem, updateRowIcon } from '@/state/dataSlice';
 import '../floatbox/pg-float-icon';
 
 @customElement("pg-float-icon-container")
@@ -33,21 +33,26 @@ export class PuduGraphFloatIconContainer extends connect(store)(LitElement) {
     this.cleanupEventListeners();
   }
 
+  private lastDataHash = '';
+
   stateChanged(state: RootState): void {
-    console.log('🎯 Icon Container: stateChanged llamado', {
-      hasConfig: !!state.config,
-      hasData: !!state.data,
-      dataLength: state.data?.length || 0,
-      hasUIState: !!state.uiState,
-      state: state
-    });
-    
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;
     
-    this.updateVisibleRange();
-    this.requestUpdate();
+    // Crear hash de los datos para detectar cambios reales
+    const dataHash = JSON.stringify({
+      dataLength: this.data.length,
+      config: this.config?.options,
+      uiState: this.uiState
+    });
+    
+    // Solo actualizar si realmente cambiaron los datos
+    if (dataHash !== this.lastDataHash) {
+      this.lastDataHash = dataHash;
+      this.updateVisibleRange();
+      this.requestUpdate();
+    }
   }
 
   private setupEventListeners(): void {
@@ -84,23 +89,12 @@ export class PuduGraphFloatIconContainer extends connect(store)(LitElement) {
       // Encontrar el item en los datos y actualizarlo
       const iconData = this.data[rowIndex].iconData!;
       
-      // Buscar por múltiples criterios para encontrar el item original
-      const itemIndex = iconData.findIndex(existingItem => {
-        // Si tienen el mismo label (identificador único)
-        if (existingItem.label === item.label) return true;
-        
-        // Si tienen el mismo color y startUnix similar (para items sin label)
-        if (existingItem.color === item.color && 
-            Math.abs((existingItem.startUnix || 0) - (item.startUnix || 0)) < 3600) { // 1 hora de diferencia
-          return true;
-        }
-        
-        return false;
-      });
+      // Buscar por ID único
+      const itemIndex = iconData.findIndex(existingItem => existingItem.id === item.id);
       
       if (itemIndex !== -1) {
         // Actualizar el item en el store global
-        store.dispatch(updateRowItem({
+        store.dispatch(updateRowIcon({
           rowIndex,
           itemIndex,
           itemData: { ...item }
@@ -121,14 +115,6 @@ export class PuduGraphFloatIconContainer extends connect(store)(LitElement) {
   }
 
   private renderRow(row: PGRowData, rowIndex: number) {
-    console.log(`🎯 Icon Container: renderRow llamado para fila ${rowIndex}`, {
-      hasIconData: !!row.iconData,
-      iconDataLength: row.iconData?.length || 0,
-      iconData: row.iconData,
-      hasConfig: !!this.config,
-      hasUIState: !!this.uiState
-    });
-    
     if (!row.iconData?.length) {
       return html``;
     }
@@ -142,13 +128,11 @@ export class PuduGraphFloatIconContainer extends connect(store)(LitElement) {
       // Usar el índice del item módulo el número máximo de niveles disponibles
       const overlapLevel = itemIndex % maxLevels;
       
-      console.log(`🎯 Icon Container: Renderizando icono ${itemIndex}`, {
-        item,
-        overlapLevel,
-        rowIndex,
-        config: this.config,
-        uiState: this.uiState
-      });
+      // Log simplificado solo para verificar datos
+      if (rowIndex === 2 && itemIndex === 0) {
+        console.log('🎯 Icon Created:', item.label, '|', 
+          'Date:', item.startUnix ? new Date(item.startUnix * 1000).toISOString().split('T')[0] : 'N/A');
+      }
       
       return html`
         <pg-float-icon

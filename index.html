@@ -27,6 +27,13 @@
           enableVirtualization: true, // Habilitar virtualización
           cacheSize: 1000, // Tamaño del cache
 
+          // Configuración de interacciones por defecto
+          interactions: {
+            enableDrag: true,
+            enableResize: false,
+            dragHorizontalOnly: true
+          },
+
           header: {},
           sidebar: {
             width: 500,
@@ -211,6 +218,40 @@
                 interactions: {
                   enableDrag: true,
                   enableResize: false
+                }
+              }
+            ],
+            iconData: [
+              {
+                startUnix: Date.parse("2025-05-25T12:00:00Z") / 1000,
+                color: "#e67e22",
+                label: "Icono arrastrable 1",
+                interactions: {
+                  enableDrag: true
+                }
+              },
+              {
+                startUnix: Date.parse("2025-05-28T12:00:00Z") / 1000,
+                color: "#e67e22",
+                label: "Icono arrastrable 2",
+                interactions: {
+                  enableDrag: true
+                }
+              },
+              {
+                startUnix: Date.parse("2025-06-05T18:00:00Z") / 1000,
+                color: "#8e44ad",
+                label: "Icono arrastrable 3",
+                interactions: {
+                  enableDrag: true
+                }
+              },
+              {
+                startUnix: Date.parse("2025-06-15T09:00:00Z") / 1000,
+                color: "#27ae60",
+                label: "Icono arrastrable 4",
+                interactions: {
+                  enableDrag: true
                 }
               }
             ]

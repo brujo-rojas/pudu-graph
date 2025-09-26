@@ -52,17 +52,26 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
     this.cleanupEventListeners();
   }
 
+  private lastDataHash = '';
+
   stateChanged(state: RootState): void {
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;
     
-    // Debug: verificar datos
-    if (this.data.length > 0) {
-    }
+    // Crear hash de los datos para detectar cambios reales
+    const dataHash = JSON.stringify({
+      dataLength: this.data.length,
+      config: this.config?.options,
+      uiState: this.uiState
+    });
     
-    this.updateVisibleRange();
-    this.requestUpdate();
+    // Solo actualizar si realmente cambiaron los datos
+    if (dataHash !== this.lastDataHash) {
+      this.lastDataHash = dataHash;
+      this.updateVisibleRange();
+      this.requestUpdate();
+    }
   }
 
   private setupEventListeners(): void {
@@ -138,7 +147,6 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
 
 
   private renderRow(row: PGRowData, rowIndex: number) {
-    
     if (!row.rowData?.length) {
       return html``;
     }
@@ -148,10 +156,21 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
     const floatboxHeight = this.config?.options.floatboxHeight || 20;
     const maxLevels = Math.floor(itemHeight / floatboxHeight); // 60 / 16 = 3.75 → 3 niveles
     
+    // Log simplificado solo para verificar datos
+    if (rowIndex === 0) {
+      console.log('🎯 FloatboxContainer: renderRow', row.label, '|', 
+        'rowData:', row.rowData?.length || 0);
+    }
+    
     return row.rowData.map((item, itemIndex) => {
       // Usar el índice del item módulo el número máximo de niveles disponibles
       const overlapLevel = itemIndex % maxLevels;
       
+      // Log simplificado solo para verificar datos
+      if (rowIndex === 0 && itemIndex === 0) {
+        console.log('🎯 Floatbox Created:', item.label, '|', 
+          'Date:', new Date(item.startUnix * 1000).toISOString().split('T')[0]);
+      }
       
       return html`
         <pg-floatbox

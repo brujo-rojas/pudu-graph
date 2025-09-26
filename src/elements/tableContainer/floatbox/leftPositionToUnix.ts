@@ -15,7 +15,8 @@ const leftToUnix = ({ config, zoomValue, left }: Params): number => {
   if (!config || !zoomValue) return 0;
   const { startUnix = 0, dayWidth = DAY_WIDTH } = config.options;
 
-  return Math.round((left / (dayWidth * zoomValue)) * DAY_SECONDS + startUnix);
+  const result = Math.round((left / (dayWidth * zoomValue)) * DAY_SECONDS + startUnix);
+  return result;
 };
 
 export default leftToUnix;
