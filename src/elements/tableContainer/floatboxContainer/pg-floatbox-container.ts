@@ -143,9 +143,14 @@ export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
       return html``;
     }
     
+    // Calcular niveles de solapamiento basados en la altura disponible
+    const itemHeight = this.config?.options.itemHeight || 60;
+    const floatboxHeight = this.config?.options.floatboxHeight || 20;
+    const maxLevels = Math.floor(itemHeight / floatboxHeight); // 60 / 16 = 3.75 → 3 niveles
     
     return row.rowData.map((item, itemIndex) => {
-      const overlapLevel = itemIndex % 3; // Solapamiento simple
+      // Usar el índice del item módulo el número máximo de niveles disponibles
+      const overlapLevel = itemIndex % maxLevels;
       
       
       return html`

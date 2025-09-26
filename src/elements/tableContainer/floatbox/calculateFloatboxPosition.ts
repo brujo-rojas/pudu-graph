@@ -1,6 +1,7 @@
 import type { PGConfig, PGItemData } from "@/types";
 import { DAY_SECONDS } from "@/utils/CONSTANTS";
-import { DAY_WIDTH, FLOATBOX_HEIGHT } from "@/utils/DEFAULTS";
+import { DAY_WIDTH } from "@/utils/DEFAULTS";
+import { getFloatboxHeight, getItemHeight } from "@/utils/floatboxHeight";
 
 // TODO: Performance Optimization - Cache para cálculos frecuentes
 // const calculationCache = new Map<string, { left: number; top: number; width: number; height: number }>();
@@ -29,6 +30,7 @@ interface TopParams {
   rowIndex: number;
   overlapLevel: number;
   itemHeight: number;
+  floatboxHeight: number;
 }
 
 function isValidFloatbox({
@@ -66,11 +68,32 @@ function calcWidth({
   return result;
 }
 
-function calcTop({ rowIndex, overlapLevel, itemHeight }: TopParams): number {
+function calcTop({ rowIndex, overlapLevel, itemHeight, floatboxHeight }: TopParams): number {
   // Posicionar en la fila correcta usando rowIndex * itemHeight
   // Luego distribuir desde arriba de esa fila usando overlapLevel
   const rowTop = rowIndex * itemHeight; // Posición de la fila
-  const overlapOffset = overlapLevel * 12; // 12px de espacio entre niveles de overlap
+  
+  // Calcular cuántos niveles caben en la fila completa
+  const maxLevels = Math.floor(itemHeight / floatboxHeight); // 60 / 16 = 3.75 → 3 niveles
+  
+  // Asegurar que el overlapLevel no exceda el espacio disponible
+  const clampedOverlapLevel = Math.min(overlapLevel, maxLevels - 1);
+  
+  // Calcular el espacio total ocupado por los floatboxes
+  const totalFloatboxHeight = maxLevels * floatboxHeight; // 3 * 16 = 48px
+  
+  // Calcular el espacio sobrante
+  const remainingSpace = itemHeight - totalFloatboxHeight; // 60 - 48 = 12px
+  
+  // Distribuir el espacio sobrante entre los niveles (incluyendo el espacio antes del primer nivel)
+  const spacePerLevel = remainingSpace / (maxLevels + 1); // 12 / 4 = 3px por espacio
+  
+  // Calcular el offset: posición del nivel + espacios acumulados
+  const levelPosition = clampedOverlapLevel * floatboxHeight; // Posición del floatbox
+  const accumulatedSpaces = (clampedOverlapLevel + 1) * spacePerLevel; // Espacios acumulados
+  
+  const overlapOffset = levelPosition + accumulatedSpaces;
+  
   const result = rowTop + overlapOffset;
   
   return result;
@@ -98,7 +121,6 @@ export function calculateFloatboxPosition({
   const {
     startUnix = 0,
     dayWidth = DAY_WIDTH,
-    itemHeight = 60, // Altura por defecto de los items
   } = config.options;
   const {
     startUnix: itemStart = 0,
@@ -106,11 +128,14 @@ export function calculateFloatboxPosition({
     overlapLevel = 0,
   } = itemData;
 
+  const itemHeight = getItemHeight(config);
+  const floatboxHeight = getFloatboxHeight(config);
+
   const result = {
     left: calcLeft({ startUnix, itemStart, dayWidth, zoom: zoomValue }),
     width: calcWidth({ itemStart, itemEnd, dayWidth, zoom: zoomValue }),
-    height: FLOATBOX_HEIGHT, // Altura fija del floatbox
-    top: calcTop({ rowIndex, overlapLevel, itemHeight }),
+    height: floatboxHeight, // Altura calculada basada en configuración
+    top: calcTop({ rowIndex, overlapLevel, itemHeight, floatboxHeight }),
   };
   
   return result;

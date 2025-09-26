@@ -14,7 +14,7 @@ export interface PGOptions {
   sidebar?: PGSidebar; // Barra lateral del gráfico
   theme?: PGTheme; // Tema del gráfico
 
-  itemHeight?: number; // Altura de los items en la barra lateral
+  itemHeight?: number; // Altura de los items/filas en píxeles
   flexBoxHeight?: number; // Altura del contenedor flexible de la barra lateral
   dayWidth?: number; // Ancho de cada día en la línea de tiempo
   
@@ -22,7 +22,7 @@ export interface PGOptions {
   interactions?: PGInteractions; // Configuración de interacciones del usuario
   
   // Opciones de optimización
-  floatboxHeight?: number; // Altura del floatbox
+  floatboxHeight?: number; // Altura del floatbox en píxeles
   maxOverlapLevels?: number; // Máximo número de niveles de solapamiento
   enableVirtualization?: boolean; // Habilitar virtualización
   cacheSize?: number; // Tamaño del cache

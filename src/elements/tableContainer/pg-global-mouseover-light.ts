@@ -6,6 +6,7 @@ import type { RootState } from "@state/store";
 import { showMouseoverLight, updateMouseoverLightPosition, hideMouseoverLight, setTableRect, updateMouseoverInfo } from "@state/mouseoverLightSlice";
 import { DAY_SECONDS } from "@/utils/CONSTANTS";
 import { DAY_WIDTH } from "@/utils/DEFAULTS";
+import { getItemHeight } from "@/utils/floatboxHeight";
 
 @customElement("pg-global-mouseover-light")
 export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
@@ -164,7 +165,7 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
     const dayIndex = Math.floor(dayOffset / DAY_SECONDS);
     
     // Calcular el item del sidebar basado en la posición Y
-    const itemHeight = this.config.options.itemHeight || 60;
+    const itemHeight = getItemHeight(this.config);
     const itemIndex = Math.floor(relativeY / itemHeight);
     
     // Obtener información del día
@@ -203,7 +204,7 @@ export class PGGlobalMouseoverLight extends connect(store)(LitElement) {
     const dayIndex = Math.floor(dayOffset / DAY_SECONDS);
     
     // Calcular el item completo (número absoluto)
-    const itemHeight = this.config.options.itemHeight || 60;
+    const itemHeight = getItemHeight(this.config);
     const itemIndex = Math.floor(relativeY / itemHeight);
     
     // Verificar que esté dentro de los límites
