@@ -6,6 +6,7 @@ import type { RootState } from '@/state/store';
 import { showTooltip, hideTooltip, updateTooltipPosition, updateTooltipPositionFromElement } from '@/state/tooltipSlice';
 import { showFloatDetail, hideFloatDetail, updateFloatDetailPosition } from '@/state/floatDetailSlice';
 import { updateRowItem, updateRowIcon } from '@/state/dataSlice';
+import { toggleFloatboxSelection } from '@/state/floatboxSelectionSlice';
 import type { PGConfig, PGItemData, PGUIState } from '@/types';
 import { calculateFloatIconPosition } from './calculateFloatboxPosition';
 import { DragController } from './DragController';
@@ -45,6 +46,17 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
       transform: scale(1.2) rotate(2deg);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     }
+
+    .pg-float-icon.selected {
+      border: 2px solid #e74c3c;
+      box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.3);
+      z-index: 12;
+    }
+
+    .pg-float-icon.selected:hover {
+      transform: scale(1.2);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(231, 76, 60, 0.3);
+    }
   `;
 
   @property({ type: Object }) itemData?: PGItemData;
@@ -54,6 +66,7 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
 
   @state() private config?: PGConfig;
   @state() private uiState?: PGUIState;
+  @state() private floatboxSelection?: any;
   @state() private isDragging = false;
 
   private dragController?: DragController;
@@ -72,6 +85,7 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
   stateChanged(state: RootState): void {
     this.config = state.config;
     this.uiState = state.uiState;
+    this.floatboxSelection = state.floatboxSelection;
     this.updateStyles();
     
     // Re-inicializar controllers cuando cambie el estado
@@ -297,6 +311,42 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
     }, 100);
   };
 
+  /**
+   * Verifica si este icono está seleccionado
+   */
+  private isSelected(): boolean {
+    if (!this.itemData?.id || !this.floatboxSelection?.selections) {
+      return false;
+    }
+    
+    return this.floatboxSelection.selections.some(
+      (selection: any) => selection.id === this.itemData?.id && selection.type === 'icon'
+    );
+  }
+
+  /**
+   * Maneja el click en el icono para selección
+   */
+  private handleClick = (event: MouseEvent) => {
+    event.stopPropagation();
+    
+    if (!this.itemData?.id) {
+      return;
+    }
+
+    // Encontrar el índice del item en el iconData
+    const itemIndex = this.rowData?.iconData?.findIndex((item: any) => item.id === this.itemData?.id) ?? -1;
+    
+    if (itemIndex >= 0) {
+      store.dispatch(toggleFloatboxSelection({
+        id: this.itemData.id,
+        type: 'icon',
+        rowIndex: this.rowIndex,
+        itemIndex: itemIndex
+      }));
+    }
+  };
+
   render() {
     if (!this.config || !this.itemData || !this.uiState) {
       return html``;
@@ -307,10 +357,11 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
 
     const color = this.itemData.color || '#3498db';
     const label = this.itemData.label || '';
+    const isSelected = this.isSelected();
 
     return html`
       <div 
-        class="pg-float-icon ${this.isDragging ? 'dragging' : ''}"
+        class="pg-float-icon ${this.isDragging ? 'dragging' : ''} ${isSelected ? 'selected' : ''}"
         style="
           left: var(--pg-float-icon-left, 0px);
           top: var(--pg-float-icon-top, 0px);
@@ -321,6 +372,7 @@ export class PuduGraphFloatIcon extends connect(store)(LitElement) {
         @mouseenter="${this.handleMouseEnter}"
         @mouseleave="${this.handleMouseLeave}"
         @mousemove="${this.handleMouseMove}"
+        @click="${this.handleClick}"
         title="${label}"
       ></div>
     `;

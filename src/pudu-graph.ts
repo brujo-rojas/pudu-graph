@@ -18,6 +18,7 @@ import type { RootState } from "@state/store";
 import { setConfig } from "./state/configSlice";
 import { setRows } from "./state/dataSlice";
 import { clearAllSelections, addGridSelection, removeGridSelection, toggleGridSelection } from "./state/gridSelectionSlice";
+import { clearAllFloatboxSelections, addFloatboxSelection, removeFloatboxSelection, toggleFloatboxSelection, setFloatboxSelections } from "./state/floatboxSelectionSlice";
 import debounce from "./utils/debounce";
 import { assignUniqueIds } from "./utils/assignIds";
 
@@ -79,6 +80,37 @@ export class PuduGraph extends connect(store)(LitElement) {
 
   public toggleGridSelection(rowIndex: number, dayIndex: number) {
     store.dispatch(toggleGridSelection({ rowIndex, dayIndex }));
+  }
+
+  // API pública para selección de floatboxes e iconos
+  public clearFloatboxSelections() {
+    store.dispatch(clearAllFloatboxSelections());
+  }
+
+  public getFloatboxSelectionCount(): number {
+    const state = store.getState();
+    return state.floatboxSelection.selections.length;
+  }
+
+  public getFloatboxSelections() {
+    const state = store.getState();
+    return state.floatboxSelection.selections;
+  }
+
+  public addFloatboxSelection(id: string, type: 'floatbox' | 'icon', rowIndex: number, itemIndex: number) {
+    store.dispatch(addFloatboxSelection({ id, type, rowIndex, itemIndex }));
+  }
+
+  public removeFloatboxSelection(id: string) {
+    store.dispatch(removeFloatboxSelection({ id }));
+  }
+
+  public toggleFloatboxSelection(id: string, type: 'floatbox' | 'icon', rowIndex: number, itemIndex: number) {
+    store.dispatch(toggleFloatboxSelection({ id, type, rowIndex, itemIndex }));
+  }
+
+  public setFloatboxSelections(selections: Array<{id: string, type: 'floatbox' | 'icon', rowIndex: number, itemIndex: number}>) {
+    store.dispatch(setFloatboxSelections(selections));
   }
 
   private debouncedRequestUpdate(delay = 100) {

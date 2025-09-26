@@ -28,6 +28,12 @@ export class DragController extends BaseController {
   private dragElement: HTMLElement | null = null;
   private dragHorizontalOnly: boolean;
   private animationFrameId: number | null = null;
+  
+  // Estado para detectar si es un click o drag
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private hasMoved = false;
+  private dragThreshold = 5; // píxeles de movimiento para considerar drag
 
   // Callback para notificar drop
   private onDropCallback: ((params: DropCallbackParams) => void) | null = null;
@@ -76,15 +82,23 @@ export class DragController extends BaseController {
     host.removeEventListener("pointerdown", this.onPointerDown);
   }
 
-  /** Handler para pointerdown: inicia el drag. */
+  /** Handler para pointerdown: prepara para drag o click. */
   private onPointerDown = (e: PointerEvent) => {
     const floatbox = this.getFloatBoxChildElement(this.renderRoot);
     if (!floatbox) return;
-    this.startDrag(e, floatbox);
+    
+    // Guardar posición inicial para detectar movimiento
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
+    this.hasMoved = false;
+    this.activePointerId = e.pointerId;
+    
+    // Preparar para drag pero no iniciar aún
+    this.prepareDrag(e, floatbox);
   };
 
-  /** Inicia el drag y crea el elemento visual. */
-  private startDrag(event: PointerEvent, floatbox: HTMLElement) {
+  /** Prepara el drag pero no lo inicia hasta detectar movimiento. */
+  private prepareDrag(event: PointerEvent, floatbox: HTMLElement) {
     const rect = floatbox.getBoundingClientRect();
     this.dragOffsetX = event.clientX - rect.left;
     this.dragOffsetY = event.clientY - rect.top;
@@ -95,8 +109,13 @@ export class DragController extends BaseController {
     const { left: originalLeft } = this.calculateElementPosition();
     this.dragStartTableLeft = originalLeft;
     
+    // Agregar listeners para detectar movimiento
+    this.addPointerEvents();
+  }
+
+  /** Inicia el drag y crea el elemento visual. */
+  private startDrag(event: PointerEvent, floatbox: HTMLElement) {
     this.isDragging = true;
-    this.activePointerId = event.pointerId;
 
     (event.target as HTMLElement).setPointerCapture(event.pointerId);
     this.dragElement = this.createDragElement({
@@ -114,7 +133,6 @@ export class DragController extends BaseController {
       dragHorizontalOnly: this.dragHorizontalOnly,
       fixedTop: this.fixedTop,
     });
-    this.addPointerEvents();
   }
 
   /** Agrega listeners globales para el drag. */
@@ -131,9 +149,25 @@ export class DragController extends BaseController {
     window.removeEventListener("pointercancel", this.onPointerCancel);
   }
 
-  /** Handler para pointermove: actualiza la posición del drag visual. */
+  /** Handler para pointermove: detecta movimiento y actualiza la posición del drag visual. */
   private onPointerMove = (e: PointerEvent) => {
     if (e.pointerId !== this.activePointerId) return;
+    
+    // Detectar si ha habido movimiento suficiente para iniciar drag
+    if (!this.hasMoved) {
+      const deltaX = Math.abs(e.clientX - this.dragStartX);
+      const deltaY = Math.abs(e.clientY - this.dragStartY);
+      
+      if (deltaX > this.dragThreshold || deltaY > this.dragThreshold) {
+        this.hasMoved = true;
+        // Iniciar drag
+        const floatbox = this.getFloatBoxChildElement(this.renderRoot);
+        if (floatbox) {
+          this.startDrag(e, floatbox);
+        }
+      }
+    }
+    
     if (!this.isDragging || !this.dragElement) return;
     
     // Usar requestAnimationFrame para optimizar el rendimiento
@@ -158,6 +192,13 @@ export class DragController extends BaseController {
   /** Handler para pointerup: termina el drag y actualiza datos. */
   private onPointerUp = (e: PointerEvent) => {
     if (e.pointerId !== this.activePointerId) return;
+    
+    // Si no hubo movimiento, no hacer nada (permitir que el click se procese)
+    if (!this.hasMoved) {
+      this.cleanup();
+      return;
+    }
+    
     if (!this.isDragging || !this.dragElement) return;
     this.isDragging = false;
     this.activePointerId = null;
@@ -170,6 +211,12 @@ export class DragController extends BaseController {
   /** Handler para pointercancel: cancela el drag. */
   private onPointerCancel = (e: PointerEvent) => {
     if (e.pointerId !== this.activePointerId) return;
+    
+    // Si no hubo movimiento, solo limpiar
+    if (!this.hasMoved) {
+      this.cleanup();
+      return;
+    }
     
     // Limpiar animation frame pendiente
     if (this.animationFrameId) {
@@ -259,6 +306,7 @@ export class DragController extends BaseController {
       : `${y - dragOffsetY}px`;
   }
 
+
   /** Obtiene el elemento floatbox del renderRoot. */
   private getFloatBoxChildElement(renderRoot: RenderRoot): HTMLElement | null {
     // Buscar el elemento específico según el tipo de componente
@@ -315,11 +363,13 @@ export class DragController extends BaseController {
   }
 
   /** Limpia el estado y listeners. */
-  cleanup(): void {
+  public cleanup(): void {
     this.isDragging = false;
     this.activePointerId = null;
+    this.hasMoved = false;
     this.dragElement = null;
     this.onDropCallback = null;
+    this.removePointerEvents();
   }
 }
 

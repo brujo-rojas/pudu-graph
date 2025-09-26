@@ -21,7 +21,18 @@
         font-size: 14px;
         margin-right: 10px;
       ">Clear Grid Selections</button>
+      <button id="clearFloatboxSelections" style="
+        padding: 10px 20px; 
+        background: #9b59b6; 
+        color: white; 
+        border: none; 
+        border-radius: 4px; 
+        cursor: pointer;
+        font-size: 14px;
+        margin-right: 10px;
+      ">Clear Floatbox Selections</button>
       <span id="selectionCount" style="color: #666; font-size: 14px;">0 cells selected</span>
+      <span id="floatboxSelectionCount" style="color: #666; font-size: 14px; margin-left: 10px;">0 floatboxes selected</span>
     </div>
     
     <pudu-graph loading="true"></pudu-graph>
@@ -29,7 +40,9 @@
     <script type="module">
       const graphElement = document.querySelector("pudu-graph");
       const clearButton = document.getElementById("clearSelections");
+      const clearFloatboxButton = document.getElementById("clearFloatboxSelections");
       const selectionCount = document.getElementById("selectionCount");
+      const floatboxSelectionCount = document.getElementById("floatboxSelectionCount");
       
       // Función para limpiar las selecciones del grid
       function clearGridSelections() {
@@ -41,7 +54,17 @@
         }
       }
       
-      // Función para obtener el conteo de selecciones
+      // Función para limpiar las selecciones de floatboxes e iconos
+      function clearFloatboxSelections() {
+        if (graphElement && graphElement.clearFloatboxSelections) {
+          graphElement.clearFloatboxSelections();
+          console.log("Floatbox selections cleared via API");
+        } else {
+          console.warn("clearFloatboxSelections method not available on graph element");
+        }
+      }
+      
+      // Función para obtener el conteo de selecciones del grid
       function updateSelectionCount() {
         if (graphElement && graphElement.getGridSelectionCount) {
           const count = graphElement.getGridSelectionCount();
@@ -49,11 +72,23 @@
         }
       }
       
-      // Event listener para el botón
-      clearButton.addEventListener("click", clearGridSelections);
+      // Función para obtener el conteo de selecciones de floatboxes
+      function updateFloatboxSelectionCount() {
+        if (graphElement && graphElement.getFloatboxSelectionCount) {
+          const count = graphElement.getFloatboxSelectionCount();
+          floatboxSelectionCount.textContent = `${count} floatboxes selected`;
+        }
+      }
       
-      // Actualizar el conteo cada 500ms
-      setInterval(updateSelectionCount, 500);
+      // Event listeners para los botones
+      clearButton.addEventListener("click", clearGridSelections);
+      clearFloatboxButton.addEventListener("click", clearFloatboxSelections);
+      
+      // Actualizar los conteos cada 500ms
+      setInterval(() => {
+        updateSelectionCount();
+        updateFloatboxSelectionCount();
+      }, 500);
       const config = {
         options: {
           startUnix: Date.parse("2025-05-20T00:00:00Z") / 1000,
