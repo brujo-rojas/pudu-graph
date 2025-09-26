@@ -1,0 +1,51 @@
+/* header timeline */
+:host {
+  display: block;
+  padding-left: var(--pg-sidebar-width, 300px);
+}
+
+.pg-header-timeline {
+  display: flex;
+  flex-direction: row;
+
+  .month-header {
+    flex-direction: column;
+    color: var(--pg-header-text-color, black);
+
+    .month-title-container {
+    }
+
+    .month-title {
+      position: sticky;
+      display: inline-block;
+      left: var(--pg-sidebar-width, 300px);
+      background-color: green;
+      padding: 0 0.25rem;
+    }
+
+    .days-container {
+      display: flex;
+      flex-direction: row;
+
+      .day-header {
+        width: calc(var(--pg-cell-width, 30px) - 1px);
+        height: var(--pg-cell-header-height, 20px);
+        border-right: 1px solid var(--pg-header-border-color, #ff0202);
+        color: var(--pg-header-text-color, black);
+
+        &:first-child {
+          border-left: 1px solid var(--pg-header-border-color, #ff0202);
+        }
+
+        .day-title {
+        }
+
+        &.highlighted {
+          background-color: var(--pg-header-highlight-color, #007bff) !important;
+          color: white;
+          transition: background-color 0.2s ease;
+        }
+      }
+    }
+  }
+}

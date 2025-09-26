@@ -1,47 +1,40 @@
 @use "sass:color";
 
-//variables css
-pudu-graph {
-  --pudu-graph-background-color: red;
-  --pudu-graph-border-color: #ddd;
-  --pudu-graph-text-color: #333;
-}
+pg-cssvars-controller {
+  --pg-sidebar-width: 250px;
+  --pg-header-height: 50px;
 
-pudu-graph {
-  border: 1px solid green;
+  --pg-zoom-value: 1;
+  --pg-item-height: 40px;
+  --pg-initial-cell-width: 30px;
+  --pg-cell-width: calc(
+    var(--pg-initial-cell-width, 30px) * var(--pg-zoom-value, 1)
+  );
 
-  &-tabs-container {
-    border: 1px solid red;
-    pudu-graph-tab {
-      color: red;
-    }
-  }
+  --pg-internal-width: 7000px;
+  --pg-internal-height: 1000px;
 
-  &-tab {
-    padding: 10px;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
+  // --pg-header-top-background-color: #189c5a;
+  // --pg-header-top-border-color: #06f7ff;
 
-    &.active {
-      border-bottom-color: var(--pudu-graph-border-color, #ddd);
-      color: var(--pudu-graph-text-color, #333);
-    }
-  }
-}
+  // --pg-header-top-button-background-color: #1580aa;
+  // --pg-header-top-button-color: #1a9c2b;
+  // --pg-header-top-button-border-color: #146e92;
+  // --pg-header-top-button-hover-background-color: #126a7f;
+  // --pg-header-top-button-hover-color: #1a9c2b;
+  // --pg-header-top-button-active-background-color: #0f5a6b;
+  // --pg-header-top-button-active-color: #1a9c2b;
 
-.pg-container {
-  --sidebar-width: 250px;
-  --header-height: 50px;
+  // --pg-tab-color: #333;
+  // --pg-tab-background-color: #007bff;
+  // --pg-tab-border-color: #0056b3;
+  // --pg-tab-hover-background-color: #0056b3;
+  // --pg-tab-active-background-color: #0056b3;
 
-  --item-width: 40px;
-  --item-height: 40px;
+  --pg-header-background-color: #756363;
+  --pg-header-border-color: #3cff00;
 
-  --day-width: 30px;
-
-  //--grid-background-color: #f0f0f0;
-  //--grid-border-color: #ccc;
-
-  --internal-width: 7000px;
-  --internal-height: 1000px;
-
+  --pg-sidebar-background-color: #be7c19;
+  --pg-sidebar-border-color: #ff0000;
+  --pg-sidebar-item-background-color: #e0e0e0;
 }

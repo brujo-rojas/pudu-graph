@@ -1,0 +1,5 @@
+/* floatbox container */
+:host {
+  display: block;
+  pointer-events: none;
+}

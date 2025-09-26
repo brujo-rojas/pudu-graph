@@ -12,7 +12,7 @@ export default function renderSlotOrDefault(
   `;
 
   const fallbackTemplate = isSlotEmpty(renderRoot, slotName)
-    ? html`<span>${fallback}</span>`
+    ? html`${fallback}`
     : null;
 
   return html`${slotTemplate}${fallbackTemplate}`;

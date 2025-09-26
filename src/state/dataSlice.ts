@@ -1,13 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
-
-export interface RowData {
-  id: string;
-  [key: string]: any;
-}
+import type { PGRowData } from "@/types";
 
 // DataState ahora es simplemente un array de RowData
-export type DataState = RowData[];
+export type DataState = PGRowData[];
 
 const initialState: DataState = [];
 
@@ -15,15 +11,15 @@ const dataSlice = createSlice({
   name: "data",
   initialState,
   reducers: {
-    setRows(state, action: PayloadAction<RowData[]>) {
+    setRows(state, action: PayloadAction<PGRowData[]>) {
       return action.payload;
     },
-    addRow(state, action: PayloadAction<RowData>) {
+    addRow(state, action: PayloadAction<PGRowData>) {
       state.push(action.payload);
     },
     updateRow(
       state,
-      action: PayloadAction<{ id: string; data: Partial<RowData> }>
+      action: PayloadAction<{ id: string; data: Partial<PGRowData> }>
     ) {
       const idx = state.findIndex((r) => r.id === action.payload.id);
       if (idx !== -1) {
@@ -33,12 +29,30 @@ const dataSlice = createSlice({
     removeRow(state, action: PayloadAction<string>) {
       return state.filter((r) => r.id !== action.payload);
     },
+    updateRowItem(
+      state,
+      action: PayloadAction<{ rowIndex: number; itemIndex: number; itemData: any }>
+    ) {
+      const { rowIndex, itemIndex, itemData } = action.payload;
+      if (state[rowIndex] && state[rowIndex].rowData && state[rowIndex].rowData[itemIndex]) {
+        state[rowIndex].rowData[itemIndex] = itemData;
+      }
+    },
+    updateRowIcon(
+      state,
+      action: PayloadAction<{ rowIndex: number; itemIndex: number; itemData: any }>
+    ) {
+      const { rowIndex, itemIndex, itemData } = action.payload;
+      if (state[rowIndex] && state[rowIndex].iconData && state[rowIndex].iconData![itemIndex]) {
+        state[rowIndex].iconData![itemIndex] = itemData;
+      }
+    },
     clearRows() {
       return [];
     },
   },
 });
 
-export const { setRows, addRow, updateRow, removeRow, clearRows } =
+export const { setRows, addRow, updateRow, removeRow, updateRowItem, updateRowIcon, clearRows } =
   dataSlice.actions;
 export default dataSlice.reducer;

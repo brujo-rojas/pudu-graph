@@ -1,0 +1,13 @@
+/* sidebar */
+:host {
+  display: block;
+  position: sticky;
+  left: 0;
+  width: var(--pg-sidebar-width);
+  height: var(--pg-internal-height, 100%);
+  z-index: 20;
+  overflow: visible;
+  background-color: var(--pg-sidebar-background-color, #a3a3a3);
+  border-right: 1px solid var(--pg-sidebar-border-color, #4d4d4d);
+  color: var(--pg-sidebar-text-color, black);
+}

@@ -1,8 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { PuduGraphConfig } from "../types";
+import type { PGConfig } from "@/types";
 
-const initialState: PuduGraphConfig = {
+const initialState: PGConfig = {
   data: [],
   options: {},
 };
@@ -11,7 +11,7 @@ const configSlice = createSlice({
   name: "config",
   initialState,
   reducers: {
-    setConfig(state, action: PayloadAction<PuduGraphConfig>) {
+    setConfig(state, action: PayloadAction<PGConfig>) {
       return action.payload;
     },
   },

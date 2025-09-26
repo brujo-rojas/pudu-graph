@@ -1,47 +1,53 @@
 // Importaciones de librerías externas
-import { LitElement, html, unsafeCSS, type PropertyValueMap } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
+import { LitElement, html, unsafeCSS } from "lit";
+import { customElement, property } from "lit/decorators.js";
 import { connect } from "pwa-helpers";
 
 // Importación de estilos
 import scssStyles from "./styles/styles.scss?inline";
 
 // Importaciones de componentes
-import "./components/headerTop/pudu-graph-header-top";
-import "./components/tableContainer/pudu-graph-table-container";
-import "./components/debug/pudu-graph-debug";
+import "./elements/tableContainer/pg-table-container";
+import "./elements/debug/pg-debug";
+import "./components/pg-cssvars-controller/pg-cssvars-controller";
 
 // Importaciones de tipos y estado
-import type { PuduGraphConfig } from "./types";
-import { store } from "./state/store";
-import type { RootState } from "./state/store";
+import type { PGConfig, PGUIState } from "@/types";
+import { store } from "@state/store";
+import type { RootState } from "@state/store";
 import { setConfig } from "./state/configSlice";
+import { setRows } from "./state/dataSlice";
+import { clearAllSelections, addGridSelection, removeGridSelection, toggleGridSelection } from "./state/gridSelectionSlice";
+import { clearAllFloatboxSelections, addFloatboxSelection, removeFloatboxSelection, toggleFloatboxSelection, setFloatboxSelections } from "./state/floatboxSelectionSlice";
+import debounce from "./utils/debounce";
+import { assignUniqueIds } from "./utils/assignIds";
 
 @customElement("pudu-graph")
 export class PuduGraph extends connect(store)(LitElement) {
-  static styles = [unsafeCSS(scssStyles)];
-
-  private config: PuduGraphConfig | null = null;
+  private config: PGConfig | null = null;
   private data: any[] = [];
-  private uiState: any = {};
+  private uiState: PGUIState = {};
 
+  static styles = [unsafeCSS(scssStyles)];
 
   @property({ type: Boolean })
   loading = false;
 
-  @state()
-  public author: string = "projas";
-
   stateChanged(state: RootState): void {
-    console.log("stateChanged", state)
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;
   }
 
-  public initialize(newConfig: PuduGraphConfig) {
-    console.log("initialize", newConfig)
-    store.dispatch(setConfig(newConfig));
+  public initialize(newConfig: PGConfig) {
+    // Asignar IDs únicos a todos los elementos
+    const configWithIds = {
+      ...newConfig,
+      data: assignUniqueIds(newConfig.data)
+    };
+    
+    store.dispatch(setConfig(configWithIds));
+    store.dispatch(setRows(configWithIds.data));
     this.debouncedRequestUpdate();
   }
 
@@ -49,54 +55,77 @@ export class PuduGraph extends connect(store)(LitElement) {
     this.loading = loading;
   }
 
-  connectedCallback() {
-    super.connectedCallback();
-    console.log("PuduGraph connected");
+  // API pública para comunicación externa
+  public clearGridSelections() {
+    store.dispatch(clearAllSelections());
   }
 
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    console.log("PuduGraph disconnected");
+  public getGridSelectionCount(): number {
+    const state = store.getState();
+    return state.gridSelection.selections.length;
   }
 
-  firstUpdated() {
-    console.log("PuduGraph first updated");
+  public getGridSelections() {
+    const state = store.getState();
+    return state.gridSelection.selections;
   }
 
-  updated(changedProperties: PropertyValueMap<any> | Map<PropertyKey, unknown>) {
-    super.updated(changedProperties);
-    console.log("PuduGraph updated", changedProperties);
+  public addGridSelection(rowIndex: number, dayIndex: number) {
+    store.dispatch(addGridSelection({ rowIndex, dayIndex }));
   }
 
-  // debounce
-  private _debounceTimeout: any = null;
+  public removeGridSelection(rowIndex: number, dayIndex: number) {
+    store.dispatch(removeGridSelection({ rowIndex, dayIndex }));
+  }
 
-  private debounce(fn: () => void, delay: number) {
-    clearTimeout(this._debounceTimeout);
-    this._debounceTimeout = setTimeout(fn, delay);
+  public toggleGridSelection(rowIndex: number, dayIndex: number) {
+    store.dispatch(toggleGridSelection({ rowIndex, dayIndex }));
+  }
+
+  // API pública para selección de floatboxes e iconos
+  public clearFloatboxSelections() {
+    store.dispatch(clearAllFloatboxSelections());
+  }
+
+  public getFloatboxSelectionCount(): number {
+    const state = store.getState();
+    return state.floatboxSelection.selections.length;
+  }
+
+  public getFloatboxSelections() {
+    const state = store.getState();
+    return state.floatboxSelection.selections;
+  }
+
+  public addFloatboxSelection(id: string, type: 'floatbox' | 'icon', rowIndex: number, itemIndex: number) {
+    store.dispatch(addFloatboxSelection({ id, type, rowIndex, itemIndex }));
+  }
+
+  public removeFloatboxSelection(id: string) {
+    store.dispatch(removeFloatboxSelection({ id }));
+  }
+
+  public toggleFloatboxSelection(id: string, type: 'floatbox' | 'icon', rowIndex: number, itemIndex: number) {
+    store.dispatch(toggleFloatboxSelection({ id, type, rowIndex, itemIndex }));
+  }
+
+  public setFloatboxSelections(selections: Array<{id: string, type: 'floatbox' | 'icon', rowIndex: number, itemIndex: number}>) {
+    store.dispatch(setFloatboxSelections(selections));
   }
 
   private debouncedRequestUpdate(delay = 100) {
-    this.debounce(() => this.requestUpdate(), delay);
+    debounce(() => this.requestUpdate(), delay);
   }
 
   render() {
     return html`
-      <div class="pg-container">
-        <pudu-graph-header-top .loading=${this.loading}>
-          <slot name="headerTopLeft" slot="headerTopLeft"></slot>
-          <slot name="headerTopCenter" slot="headerTopCenter"></slot>
-          <slot name="headerTopRight" slot="headerTopRight"></slot>
-        </pudu-graph-header-top>
-
-        <pudu-graph-table-container></pudu-graph-table-container>
+      <pg-cssvars-controller class="pg-container">
+        <pg-table-container> </pg-table-container>
 
         ${this.loading ? html`<p>Loading...</p>` : ""}
+      </pg-cssvars-controller>
 
-        <slot></slot>
-
-        <pudu-graph-debug></pudu-graph-debug>
-      </div>
+      <pg-debug></pg-debug>
     `;
   }
 }

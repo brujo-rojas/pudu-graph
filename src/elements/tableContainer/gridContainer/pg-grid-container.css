@@ -1,0 +1,9 @@
+/*grid container*/
+:host {
+  display: block;
+  position: absolute;
+  left: var(--pg-sidebar-width);
+  top: var(--pg-header-height);
+  min-width: var(--pg-internal-width);
+  min-height: var(--pg-internal-height);
+}

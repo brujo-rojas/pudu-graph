@@ -1,0 +1,4 @@
+/* Vertical plots container */
+:host{
+    display: block;
+}

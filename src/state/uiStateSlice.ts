@@ -1,22 +1,18 @@
-import { createSlice } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
-import type { PuduGraphTabConfig, PuduGraphUIState } from '../types';
+import { createSlice } from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+import type { PGUIState } from "@/types";
 
-const initialState: PuduGraphUIState = {
-  selectedTab: null,
+const initialState: PGUIState = {
   selectedRowIds: [],
   scrollLeft: 0,
   scrollTop: 0,
-  visibleRange: { start: 0, end: 0 },
+  zoomValue: 1, // Valor de zoom inicial
 };
 
 const uiStateSlice = createSlice({
-  name: 'uiState',
+  name: "uiState",
   initialState,
   reducers: {
-    setSelectedTab(state, action: PayloadAction<PuduGraphTabConfig | null>) {
-      state.selectedTab = action.payload;
-    },
     setSelectedRows(state, action: PayloadAction<string[]>) {
       state.selectedRowIds = action.payload;
     },
@@ -24,12 +20,12 @@ const uiStateSlice = createSlice({
       state.scrollLeft = action.payload.left;
       state.scrollTop = action.payload.top;
     },
-    setVisibleRange(state, action: PayloadAction<{ start: number; end: number }>) {
-      state.visibleRange = action.payload;
+    setZoom(state, action: PayloadAction<number>) {
+      state.zoomValue = action.payload;
     },
     // Puedes agregar más reducers aquí
   },
 });
 
-export const { setSelectedTab, setSelectedRows, setScroll, setVisibleRange } = uiStateSlice.actions;
+export const { setSelectedRows, setScroll, setZoom } = uiStateSlice.actions;
 export default uiStateSlice.reducer;
