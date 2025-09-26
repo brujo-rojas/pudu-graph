@@ -36,9 +36,9 @@ class ResizeController {
   private resizeSide: 'left' | 'right' = 'right';
 
   // Configuración y datos
-  private readonly itemData: PGItemData;
-  private readonly config: PGConfig;
-  private readonly zoomValue: number;
+  private itemData: PGItemData;
+  private config: PGConfig;
+  private zoomValue: number;
   private readonly renderRoot: RenderRoot;
   private readonly rowIndex: number;
 
@@ -50,9 +50,6 @@ class ResizeController {
   private static readonly MIN_WIDTH = 10;
   private static readonly SECONDS_PER_DAY = 86400;
   
-  // TODO: Performance Optimization - Cache para cálculos frecuentes
-  // private static readonly CACHE_SIZE_LIMIT = 100;
-  // private static calculationCache = new Map<string, number>();
 
   constructor(params: ResizeControllerParams) {
     this.itemData = params.itemData;
@@ -108,29 +105,21 @@ class ResizeController {
     this.onResizeEndCallback = null;
   }
 
-  // TODO: Performance Optimization - Métodos de cache
-  // /** Limpia el cache de cálculos (método estático) */
-  // public static clearCache(): void {
-  //   ResizeController.calculationCache.clear();
-  // }
-  //
-  // /** Obtiene un valor del cache o lo calcula y lo cachea */
-  // private getCachedCalculation(key: string, calculationFn: () => number): number {
-  //   if (ResizeController.calculationCache.has(key)) {
-  //     return ResizeController.calculationCache.get(key)!;
-  //   }
-  //
-  //   const result = calculationFn();
-  //   
-  //   // Limitar el tamaño del cache
-  //   if (ResizeController.calculationCache.size > ResizeController.CACHE_SIZE_LIMIT) {
-  //     const firstKey = ResizeController.calculationCache.keys().next().value;
-  //     ResizeController.calculationCache.delete(firstKey);
-  //   }
-  //   
-  //   ResizeController.calculationCache.set(key, result);
-  //   return result;
-  // }
+  /** Actualiza los datos del item */
+  updateItemData(newItemData: PGItemData): void {
+    this.itemData = newItemData;
+  }
+
+  /** Actualiza la configuración */
+  updateConfig(newConfig: PGConfig): void {
+    this.config = newConfig;
+  }
+
+  /** Actualiza el valor de zoom */
+  updateZoomValue(newZoomValue: number): void {
+    this.zoomValue = newZoomValue;
+  }
+
 
   // Métodos de eventos (compatibilidad con interfaz existente)
   public addResizeEvents(): void {
@@ -173,25 +162,21 @@ class ResizeController {
     
     const newLeft = this.calculateConstrainedLeft(rawLeft);
     const newWidth = this.calculateConstrainedWidth(rawWidth);
-    const newStartUnix = this.calculateNewStartUnix(newLeft);
     
     this.updateDOMLeft(newLeft, newWidth);
-    this.notifyResize({ newWidth, newStartUnix, newLeft });
   }
 
   private handleRightResize(deltaX: number): void {
     const rawWidth = this.initialWidth + deltaX;
     const newWidth = this.calculateConstrainedWidth(rawWidth);
-    const newEndUnix = this.calculateNewEndUnix(newWidth);
     
     this.updateDOM(newWidth);
-    this.notifyResize({ newWidth, newEndUnix });
   }
 
   // Cálculos de posición y tamaño
   private calculateNewEndUnix(newWidth: number): number {
     if (!this.config?.options || !this.itemData?.startUnix) {
-      return this.itemData?.startUnix || 0;
+      return this.itemData?.endUnix || 0;
     }
 
     const { dayWidth = 30 } = this.config.options;
@@ -273,7 +258,7 @@ class ResizeController {
     }
     
     if (resizeHandle) {
-      resizeHandle.style.left = `${newWidth - 8}px`;
+      resizeHandle.style.right = `0px`;
     }
   }
 
@@ -328,7 +313,13 @@ class ResizeController {
   private initializeResizeState(event: PointerEvent, floatbox: HTMLElement): void {
     this.isResizing = true;
     this.resizeStartX = event.clientX;
-    this.initialWidth = floatbox.getBoundingClientRect().width;
+    
+    const computedStyle = getComputedStyle(floatbox);
+    const widthFromCSS = parseFloat(computedStyle.getPropertyValue('--pg-floatbox-width')) || 
+                         parseFloat(computedStyle.width) || 
+                         floatbox.getBoundingClientRect().width;
+    
+    this.initialWidth = widthFromCSS;
     this.initialLeft = this.getCurrentLeftPosition();
     this.activePointerId = event.pointerId;
   }
@@ -375,7 +366,6 @@ class ResizeController {
     const newWidth = this.calculateConstrainedWidth(rawWidth);
     const newStartUnix = this.calculateNewStartUnix(newLeft);
     
-    this.itemData.startUnix = newStartUnix;
     this.notifyResize({ newWidth, newStartUnix, newLeft });
   }
 
@@ -384,7 +374,6 @@ class ResizeController {
     const newWidth = this.calculateConstrainedWidth(rawWidth);
     const newEndUnix = this.calculateNewEndUnix(newWidth);
     
-    this.itemData.endUnix = newEndUnix;
     this.notifyResize({ newWidth, newEndUnix });
   }
 

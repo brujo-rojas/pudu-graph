@@ -52,7 +52,8 @@ function calcLeft({
   dayWidth,
   zoom,
 }: LeftParams): number {
-  return ((itemStart - startUnix) / DAY_SECONDS) * dayWidth * zoom;
+  const result = ((itemStart - startUnix) / DAY_SECONDS) * dayWidth * zoom;
+  return result;
 }
 
 function calcWidth({
@@ -61,11 +62,13 @@ function calcWidth({
   dayWidth,
   zoom,
 }: WidthParams): number {
-  return ((itemEnd - itemStart) / DAY_SECONDS) * dayWidth * zoom;
+  const result = ((itemEnd - itemStart) / DAY_SECONDS) * dayWidth * zoom;
+  return result;
 }
 
 function calcTop({ rowIndex, overlapLevel, itemHeight }: TopParams): number {
-  return rowIndex * itemHeight + overlapLevel * 10; // 10px de offset por nivel de overlap
+  const result = rowIndex * itemHeight + overlapLevel * 10; // 10px de offset por nivel de overlap
+  return result;
 }
 
 /**
@@ -82,8 +85,10 @@ export function calculateFloatboxPosition({
   rowIndex?: number;
   zoomValue: number;
 }): { left: number; top: number; width: number; height: number } {
-  if (!isValidFloatbox({ config, itemData, zoomValue }))
+  
+  if (!isValidFloatbox({ config, itemData, zoomValue })) {
     return { left: 0, top: 0, width: 0, height: 0 };
+  }
 
   const {
     startUnix = 0,
@@ -96,12 +101,14 @@ export function calculateFloatboxPosition({
     overlapLevel = 0,
   } = itemData;
 
-  return {
+  const result = {
     left: calcLeft({ startUnix, itemStart, dayWidth, zoom: zoomValue }),
     width: calcWidth({ itemStart, itemEnd, dayWidth, zoom: zoomValue }),
     height: FLOATBOX_HEIGHT, // Altura fija del floatbox
     top: calcTop({ rowIndex, overlapLevel, itemHeight }),
   };
+
+  return result;
 }
 
 // TODO: Performance Optimization - Implementar cache para cálculos frecuentes

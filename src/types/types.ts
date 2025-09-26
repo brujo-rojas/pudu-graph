@@ -20,6 +20,12 @@ export interface PGOptions {
   
   // Opciones de interactividad
   interactions?: PGInteractions; // Configuración de interacciones del usuario
+  
+  // Opciones de optimización
+  floatboxHeight?: number; // Altura del floatbox
+  maxOverlapLevels?: number; // Máximo número de niveles de solapamiento
+  enableVirtualization?: boolean; // Habilitar virtualización
+  cacheSize?: number; // Tamaño del cache
 }
 
 export interface PGInteractions {

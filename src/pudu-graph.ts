@@ -31,6 +31,7 @@ export class PuduGraph extends connect(store)(LitElement) {
   loading = false;
 
   stateChanged(state: RootState): void {
+    
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;

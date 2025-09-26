@@ -3,8 +3,6 @@ import configReducer from "./configSlice";
 import dataReducer from "./dataSlice";
 import uiStateReducer from "./uiStateSlice";
 
-export type RootState = ReturnType<typeof store.getState>;
-
 export const store = configureStore({
   reducer: {
     config: configReducer,
@@ -12,3 +10,5 @@ export const store = configureStore({
     uiState: uiStateReducer,
   },
 });
+
+export type RootState = ReturnType<typeof store.getState>;

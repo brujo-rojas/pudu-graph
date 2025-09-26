@@ -1,13 +1,13 @@
-import { LitElement, html, unsafeCSS } from "lit";
+import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import cssStyles from "./pg-floatbox.css?inline";
 import { connect } from "pwa-helpers";
 import { store } from "@state/store";
 import type { RootState } from "@state/store";
-import type { PGConfig, PGItemData, PGRowData, PGUIState } from "@/types";
-import { calculateFloatboxPosition } from "./calculateFloatboxPosition";
+import type { PGConfig, PGRowData, PGItemData } from "@/types";
 import DragController from "./DragController";
 import ResizeController from "./ResizeController";
+import { calculateFloatboxPosition } from "./calculateFloatboxPosition";
+import type { PositionResult } from "@/utils/positionCache";
 
 /**
  * Componente floatbox que representa un elemento en el timeline.
@@ -24,28 +24,82 @@ import ResizeController from "./ResizeController";
  */
 @customElement("pg-floatbox")
 export class PuduGraphFloatbox extends connect(store)(LitElement) {
-  static styles = [unsafeCSS(cssStyles)];
+  static styles = css`
+    .pg-floatbox {
+      position: absolute;
+      background-color: var(--pg-floatbox-bg-color, #3498db);
+      color: white;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+      box-sizing: border-box;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.2s ease;
+      z-index: 1;
+    }
 
-  // Estado del componente
-  private config: PGConfig | null = null;
-  private uiState: PGUIState | null = null;
+    .pg-floatbox:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      z-index: 2;
+    }
 
-  // Dimensiones y posición
-  private width = 0;
-  private height = 0;
-  private top = 0;
-  private left = 0;
-  private isResizing = false; // Flag para evitar re-render durante resize
+    .pg-floatbox.dragging {
+      z-index: 1000;
+      transform: rotate(2deg);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
 
-  // Controladores opcionales
-  private dragController?: DragController;
-  private resizeController?: ResizeController;
+    .pg-floatbox.resizing {
+      z-index: 1000;
+    }
+
+    .resize-handle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 8px;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.3);
+      cursor: ew-resize;
+      border-radius: 0 3px 3px 0;
+      transition: background-color 0.2s ease;
+    }
+
+    .resize-handle:hover {
+      background-color: rgba(255, 255, 255, 0.6);
+    }
+
+    .resize-handle-left {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 8px;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.3);
+      cursor: ew-resize;
+      border-radius: 3px 0 0 3px;
+      transition: background-color 0.2s ease;
+    }
+
+    .resize-handle-left:hover {
+      background-color: rgba(255, 255, 255, 0.6);
+    }
+
+    .resize-handle:focus,
+    .resize-handle-left:focus {
+      outline: 2px solid #3498db;
+      outline-offset: 2px;
+    }
+  `;
 
   @property({ type: Object })
-  itemData: PGItemData | null = null;
+  itemData?: PGItemData;
 
   @property({ type: Object })
-  rowData: PGRowData | null = null;
+  rowData?: PGRowData;
 
   @property({ type: Number })
   rowIndex: number = 0;
@@ -53,20 +107,26 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   @property({ type: Number })
   overlapLevel: number = 0;
 
-  /**
-   * Si es true, el arrastre solo será horizontal (X). Si es false, será libre (X/Y).
-   * @deprecated Use config.options.interactions.dragHorizontalOnly instead
-   */
-  @property({ type: Boolean })
-  dragHorizontalOnly = true;
+  @property({ type: Object })
+  position?: PositionResult;
 
-  constructor() {
-    super();
+  private config?: PGConfig;
+  private uiState?: any;
+  private dragController?: DragController;
+  private resizeController?: ResizeController;
+  private lastPositionHash = '';
+  private lastStyleHash = '';
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.initializeControllers();
   }
 
-  /**
-   * Actualiza el estado global del componente.
-   */
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.cleanupControllers();
+  }
+
   stateChanged(state: RootState): void {
     this.config = state.config;
     this.uiState = state.uiState;
@@ -78,54 +138,36 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     
     this.requestUpdate();
   }
-  /**
-   * Calcula la posición y tamaño del floatbox en función de los datos y el zoom.
-   */
-
-  private updateStyles(
-    left: number,
-    top: number,
-    width: number,
-    height: number,
-    color: string
-  ) {
-    this.style.setProperty("--pg-local-bg-color", color);
-    this.style.setProperty("--pg-floatbox-width", `${width}px`);
-    this.style.setProperty("--pg-floatbox-height", `${height}px`);
-    this.style.setProperty("--pg-floatbox-top", `${top}px`);
-    this.style.setProperty("--pg-floatbox-left", `${left}px`);
-  }
 
   /**
-   * Inicializa los controladores de drag y resize basado en la configuración.
+   * Inicializa los controladores de drag y resize
    */
   private initializeControllers() {
-    // Limpiar controladores existentes
     this.cleanupControllers();
     
-    // Usar interacciones específicas del item si están definidas, sino usar las globales
-    const interactions = this.itemData?.interactions || this.config?.options?.interactions;
+    if (!this.config || !this.itemData || !this.uiState) {
+      return;
+    }
     
-    // Inicializar DragController solo si está habilitado
+    const interactions = this.itemData?.interactions || this.config?.options?.interactions;
+
     if (interactions?.enableDrag === true) {
       this.dragController = new DragController({
-        itemData: this.itemData!,
-        config: this.config!,
-        zoomValue: this.uiState!.zoomValue || 1,
+        itemData: this.itemData,
+        config: this.config,
+        zoomValue: this.uiState.zoomValue || 1,
         renderRoot: this.renderRoot,
         rowIndex: this.rowIndex,
-        dragHorizontalOnly: interactions?.dragHorizontalOnly ?? this.dragHorizontalOnly,
       });
       this.dragController.addDragEvents(this);
       this.dragController.onDrop(this.handleDrop);
     }
 
-    // Inicializar ResizeController solo si está habilitado
     if (interactions?.enableResize === true) {
       this.resizeController = new ResizeController({
-        itemData: this.itemData!,
-        config: this.config!,
-        zoomValue: this.uiState!.zoomValue || 1,
+        itemData: this.itemData,
+        config: this.config,
+        zoomValue: this.uiState.zoomValue || 1,
         renderRoot: this.renderRoot,
         rowIndex: this.rowIndex,
         onResize: this.handleResize,
@@ -136,7 +178,7 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
   }
 
   /**
-   * Limpia los controladores existentes.
+   * Limpia los controladores
    */
   private cleanupControllers() {
     if (this.dragController) {
@@ -145,205 +187,244 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
     }
     if (this.resizeController) {
       this.resizeController.removeResizeEvents();
-      this.resizeController.cleanup();
       this.resizeController = undefined;
     }
   }
 
   /**
-   * Inicializa los controladores de drag y resize al conectar el componente.
+   * Maneja el evento de drop
    */
-  connectedCallback() {
-    super.connectedCallback();
-    // Inicializa controladores solo si hay datos
-    if (this.config && this.itemData && this.uiState) {
-      this.initializeControllers();
+  private handleDrop = (params: { x: number; y: number; newLeft?: number; date?: Date; width?: number; newStartUnix?: number; newEndUnix?: number }) => {
+    if (!this.itemData) {
+      return;
     }
-  }
+    
+    // Usar newStartUnix y newEndUnix si están disponibles, sino calcular desde date
+    const newStartUnix = params.newStartUnix ?? (params.date ? Math.floor(params.date.getTime() / 1000) : this.itemData.startUnix);
+    const newEndUnix = params.newEndUnix ?? this.itemData.endUnix;
+    
+    
+    // Actualizar datos con inicio y fin
+    const updatedItem = { 
+      ...this.itemData, 
+      startUnix: newStartUnix,
+      endUnix: newEndUnix
+    };
+    this.itemData = updatedItem;
+    
+    
+    // Actualizar solo los datos de los controladores
+    this.updateControllerData();
+    
+    // Limpiar cache de posición
+    this.clearPositionCache();
+    
+    // Forzar actualización
+    this.requestUpdate();
+    
+    // Emitir evento de cambio
+    this.dispatchEvent(new CustomEvent('item-updated', {
+      detail: { item: updatedItem, rowIndex: this.rowIndex },
+      bubbles: true
+    }));
+  };
 
   /**
-   * Limpia los eventos al desconectar el componente.
+   * Maneja el evento de resize
    */
-  disconnectedCallback() {
-    this.cleanupControllers();
-    super.disconnectedCallback();
-  }
-
-  /**
-   * Callback para manejar el drop del dragController.
-   */
-  private handleDrop = ({
-    x,
-    y,
-    newLeft,
-    date,
-    width,
-  }: {
-    x: number;
-    y: number;
-    newLeft?: number;
-    date?: Date;
-    width?: number;
-  }) => {
-    console.log(
-      "Drop en:",
-      x,
-      y,
-      "item:",
-      this.itemData,
-      "left:",
-      newLeft,
-      "fecha/hora:",
-      date?.toISOString()
-    );
-    if (typeof newLeft === "number" && typeof width === "number") {
-      this.style.setProperty("--pg-floatbox-left", `${newLeft}px`);
-      this.style.setProperty("--pg-floatbox-width", `${width}px`);
-      this.width = width;
-      this.left = newLeft;
+  private handleResize = (params: { newWidth: number; newEndUnix?: number; newStartUnix?: number; newLeft?: number }) => {
+    if (!this.itemData) {
+      return;
+    }
+    
+    const updatedItem = { 
+      ...this.itemData, 
+      startUnix: params.newStartUnix || this.itemData.startUnix,
+      endUnix: params.newEndUnix || this.itemData.endUnix
+    };
+    this.itemData = updatedItem;
+    
+    this.updateControllerData();
+    this.clearPositionCache();
+    
+    if (!this.resizeController?.isActive()) {
       this.requestUpdate();
     }
+    
+    this.dispatchEvent(new CustomEvent('item-updated', {
+      detail: { item: updatedItem, rowIndex: this.rowIndex },
+      bubbles: true
+    }));
   };
 
   /**
-   * Maneja el resize y actualiza el estado interno.
-   */
-  private handleResize = ({ newWidth, newEndUnix, newStartUnix, newLeft }: { 
-    newWidth: number; 
-    newEndUnix?: number; 
-    newStartUnix?: number; 
-    newLeft?: number; 
-  }) => {
-    // Marcar que estamos en proceso de resize
-    this.isResizing = true;
-    
-    // Actualizar estado interno
-    this.width = newWidth;
-    
-    // Si es resize desde la izquierda, actualizar también la posición
-    if (newLeft !== undefined) {
-      this.left = newLeft;
-    }
-    
-    // Los datos y DOM ya fueron actualizados por el ResizeController
-    // No hacer requestUpdate durante resize para evitar re-render
-  };
-
-  /**
-   * Maneja el fin del resize.
+   * Maneja el evento de fin de resize
    */
   private handleResizeEnd = () => {
-    this.isResizing = false;
-    // Forzar re-render para sincronizar con los datos actualizados
+    this.clearPositionCache();
     this.requestUpdate();
+    
+    this.dispatchEvent(new CustomEvent('resize-end', {
+      detail: { rowIndex: this.rowIndex },
+      bubbles: true
+    }));
   };
 
   /**
-   * Inicia el resize cuando se hace click en el handle.
+   * Maneja el inicio de resize
    */
-  private onResizeStart = (e: PointerEvent, side: 'left' | 'right' = 'right') => {
-    if (!this.resizeController) {
-      console.warn("ResizeController not initialized");
-      return;
+  private onResizeStart = (event: PointerEvent, side: 'left' | 'right') => {
+    event.stopPropagation();
+    if (this.resizeController) {
+      this.resizeController.startResize(event, this, side);
     }
-    
-    // Verificar si ya hay un resize activo
-    if (this.resizeController.isActive()) {
-      console.warn("Resize already active, ignoring new resize start");
-      return;
-    }
-    
-    e.stopPropagation(); // Evitar que se active el drag
-    
-    const floatbox = this.renderRoot.querySelector(".pg-floatbox") as HTMLElement;
-    if (!floatbox) {
-      console.warn("Floatbox element not found");
-      return;
-    }
-    
-    this.resizeController.startResize(e, floatbox, side);
   };
 
   /**
-   * Maneja el resize con teclado para accesibilidad.
+   * Maneja resize con teclado
    */
-  private handleKeyboardResize = (e: KeyboardEvent, side: 'left' | 'right') => {
-    if (e.key !== 'Enter' && e.key !== ' ') {
+  private handleKeyboardResize = (event: KeyboardEvent, side: 'left' | 'right') => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      // Simular evento de pointer para resize
+      const fakeEvent = new PointerEvent('pointerdown', {
+        pointerId: 1,
+        clientX: 0,
+        clientY: 0,
+        button: 0
+      });
+      this.onResizeStart(fakeEvent, side);
+    }
+  };
+
+  /**
+   * Actualiza los estilos del elemento
+   */
+  private updateStyles(
+    left: number,
+    top: number,
+    width: number,
+    height: number
+  ): void {
+    const styleHash = `${left}-${top}-${width}-${height}`;
+
+
+    // No actualizar estilos si hay un resize o drag activo
+    if (this.resizeController?.isActive() || this.dragController?.isActive()) {
       return;
     }
+
+    // Siempre actualizar estilos para evitar problemas de cache
+    this.style.setProperty("--pg-floatbox-left", `${left}px`);
+    this.style.setProperty("--pg-floatbox-top", `${top}px`);
+    this.style.setProperty("--pg-floatbox-width", `${width}px`);
+    this.style.setProperty("--pg-floatbox-height", `${height}px`);
+    this.lastStyleHash = styleHash;
+  }
+
+  /**
+   * Actualiza solo los datos de los controladores existentes
+   */
+  private updateControllerData(): void {
     
-    e.preventDefault();
-    
-    if (!this.resizeController) {
-      console.warn("ResizeController not initialized");
-      return;
+    if (this.dragController && this.itemData) {
+      this.dragController.updateItemData(this.itemData);
     }
     
-    // Simular un evento de pointer para resize con teclado
-    const floatbox = this.renderRoot.querySelector(".pg-floatbox") as HTMLElement;
-    if (!floatbox) {
-      console.warn("Floatbox element not found");
+    if (this.resizeController && this.itemData) {
+      this.resizeController.updateItemData(this.itemData);
+    }
+  }
+
+  /**
+   * Actualiza estilos desde posición pre-calculada
+   */
+  private updateStylesFromPosition(position: PositionResult): void {
+    const positionHash = `${position.left}-${position.top}-${position.width}-${position.height}`;
+
+    // No actualizar si hay un resize o drag activo
+    if (this.resizeController?.isActive() || this.dragController?.isActive()) {
       return;
     }
+
+    // Siempre actualizar para evitar problemas de cache
+    this.updateStyles(position.left, position.top, position.width, position.height);
+    this.lastPositionHash = positionHash;
+  }
+
+  /**
+   * Limpia el cache de posición para forzar recálculo
+   */
+  private clearPositionCache(): void {
+    this.lastPositionHash = '';
+    this.lastStyleHash = '';
+  }
+
+  /**
+   * Calcula la posición manualmente (fallback)
+   */
+  private calculatePosition(): PositionResult {
     
-    // Crear un evento sintético
-    const syntheticEvent = new PointerEvent('pointerdown', {
-      clientX: side === 'left' ? 0 : this.width,
-      pointerId: 1,
-      bubbles: true,
-      cancelable: true
+    if (!this.config || !this.itemData || !this.uiState) {
+      return { left: 0, top: 0, width: 0, height: 0, level: 0 };
+    }
+
+    const itemDataWithOverlap = {
+      ...this.itemData,
+      overlapLevel: this.overlapLevel
+    };
+    
+    const result = calculateFloatboxPosition({
+      config: this.config,
+      itemData: itemDataWithOverlap,
+      rowIndex: this.rowIndex,
+      zoomValue: this.uiState.zoomValue || 1,
     });
     
-    this.resizeController.startResize(syntheticEvent, floatbox, side);
-  };
+    return {
+      ...result,
+      level: this.overlapLevel
+    };
+  }
 
-  /**
-   * Renderiza el componente floatbox.
-   */
   render() {
-    if (!this.config || !this.itemData || !this.uiState) return html``;
     
-    // Solo recalcular posición si no estamos en proceso de resize
-    if (!this.isResizing) {
-      // Crear un itemData temporal con el overlapLevel del componente
-      const itemDataWithOverlap = {
-        ...this.itemData,
-        overlapLevel: this.overlapLevel
-      };
-      
-      const { left, top, width, height } = calculateFloatboxPosition({
-        config: this.config,
-        itemData: itemDataWithOverlap,
-        rowIndex: this.rowIndex,
-        zoomValue: this.uiState.zoomValue || 1,
-      });
-      this.width = width;
-      this.height = height;
-      this.top = top;
-      this.left = left;
+    if (!this.config || !this.itemData || !this.uiState) {
+      return html`<div style="color: red; padding: 5px;">Floatbox: Sin datos</div>`;
     }
     
-    const color = this.itemData?.color || "red";
-    this.updateStyles(this.left, this.top, this.width, this.height, color);
     
-    // Usar interacciones específicas del item si están definidas, sino usar las globales
+    // Usar posición pre-calculada si está disponible
+    if (this.position) {
+      this.updateStylesFromPosition(this.position);
+    } else {
+      // Fallback a cálculo manual
+      const position = this.calculatePosition();
+      this.updateStylesFromPosition(position);
+    }
+    
     const interactions = this.itemData?.interactions || this.config?.options?.interactions;
     const showResizeHandles = interactions?.enableResize === true;
     const showLeftHandle = showResizeHandles && (interactions?.enableLeftResize === true);
     const showRightHandle = showResizeHandles && (interactions?.enableRightResize === true);
     
     return html`
-      <div
+      <div 
         class="pg-floatbox"
-        style="touch-action: none; position: relative; width: ${this.width}px; height: ${this.height}px;"
+        style="
+          left: var(--pg-floatbox-left, 0px);
+          top: var(--pg-floatbox-top, 0px);
+          width: var(--pg-floatbox-width, 100px);
+          height: var(--pg-floatbox-height, 10px);
+          background-color: ${this.itemData.color || '#3498db'};
+        "
       >
-        ${this.itemData?.foo}
+        ${this.itemData.foo}
         
         ${showLeftHandle ? html`
-          <!-- Handle de resize izquierdo -->
           <div
             class="resize-handle-left"
-            style="position: absolute; left: 0; top: 0; width: 8px; height: 100%; cursor: ew-resize; z-index: 10; background: rgba(0, 255, 0, 0.5);"
+            style="left: 0px;"
             role="button"
             tabindex="0"
             aria-label="Redimensionar desde la izquierda"
@@ -354,10 +435,9 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
         ` : ''}
         
         ${showRightHandle ? html`
-          <!-- Handle de resize derecho -->
           <div
             class="resize-handle"
-            style="position: absolute; left: ${this.width - 8}px; top: 0; width: 8px; height: 100%; cursor: ew-resize; z-index: 10; background: rgba(255, 0, 0, 0.5);"
+            style="right: 0px;"
             role="button"
             tabindex="0"
             aria-label="Redimensionar desde la derecha"
@@ -368,11 +448,5 @@ export class PuduGraphFloatbox extends connect(store)(LitElement) {
         ` : ''}
       </div>
     `;
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    "pg-floatbox": PuduGraphFloatbox;
   }
 }

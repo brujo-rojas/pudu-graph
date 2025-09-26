@@ -46,14 +46,18 @@ interface DropCallbackParams {
   newLeft?: number;
   date?: Date;
   width?: number;
+  newStartUnix?: number;
+  newEndUnix?: number;
 }
 
 interface DropEventParams {
   x: number;
   y: number;
   newLeft: number;
-  zoomValue: number;
+  date: Date;
   width: number;
+  newStartUnix: number;
+  newEndUnix: number;
 }
 
 /**
@@ -88,6 +92,21 @@ class DragController {
     this.renderRoot = params.renderRoot;
     this.rowIndex = params.rowIndex ?? 0;
     this.dragHorizontalOnly = params.dragHorizontalOnly ?? true;
+  }
+
+  /** Actualiza los datos del item */
+  updateItemData(newItemData: PGItemData): void {
+    this.itemData = newItemData;
+  }
+
+  /** Actualiza la configuración */
+  updateConfig(newConfig: PGConfig): void {
+    this.config = newConfig;
+  }
+
+  /** Actualiza el valor de zoom */
+  updateZoomValue(newZoomValue: number): void {
+    this.zoomValue = newZoomValue;
   }
 
   /** Activa los eventos de drag sobre el componente host. */
@@ -204,7 +223,7 @@ class DragController {
     const rect = floatbox.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    // Actualiza el modelo de datos para reflejar la nueva posición
+    // Calcula la nueva posición sin modificar el objeto original
     const oldStart = this.itemData.startUnix || 0;
     const oldEnd = this.itemData.endUnix || 0;
     const newStart = leftToUnix({
@@ -212,16 +231,24 @@ class DragController {
       left: newLeft,
       zoomValue: this.zoomValue,
     });
-    this.itemData.startUnix = newStart;
-    this.itemData.endUnix = oldEnd + (newStart - oldStart);
+    const newEnd = oldEnd + (newStart - oldStart);
     // Recalcula el ancho en base a la nueva posición
+    const updatedItemData = { ...this.itemData, startUnix: newStart, endUnix: newEnd };
     const { width } = calculateFloatboxPosition({
       config: this.config,
-      itemData: this.itemData,
+      itemData: updatedItemData,
       rowIndex: this.rowIndex,
       zoomValue: this.zoomValue,
     });
-    this.notifyDrop({ x, y, newLeft, zoomValue: this.zoomValue, width });
+    this.notifyDrop({ 
+      x, 
+      y, 
+      newLeft, 
+      date: new Date(newStart * 1000),
+      width,
+      newStartUnix: newStart,
+      newEndUnix: newEnd
+    });
     this.removePointerEvents();
   }
 
@@ -270,12 +297,11 @@ class DragController {
 
   /** Notifica el drop al callback externo. */
   private notifyDrop(params: DropEventParams): void {
-    const { x, y, newLeft, zoomValue, width } = params;
+    const { x, y, newLeft, date, width, newStartUnix, newEndUnix } = params;
     if (!newLeft || !this.itemData || !this.config) return;
-    const unix = leftToUnix({ config: this.config, left: newLeft, zoomValue });
-    const date = new Date(unix * 1000);
-    this.itemData.startUnix = unix;
-    this.onDropCallback?.({ x, y, newLeft, date, width });
+    
+    // No modificar itemData directamente, solo notificar
+    this.onDropCallback?.({ x, y, newLeft, date, width, newStartUnix, newEndUnix });
   }
 
   /** Permite registrar un callback para el drop. */
@@ -285,6 +311,11 @@ class DragController {
       return;
     }
     this.onDropCallback = callback;
+  }
+
+  /** Verifica si hay un drag activo. */
+  isActive(): boolean {
+    return this.isDragging;
   }
 }
 

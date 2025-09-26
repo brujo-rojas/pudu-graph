@@ -47,6 +47,9 @@ export class PuduGraphTableContainer extends LitElement {
           <pg-mouseover-light></pg-mouseover-light>
           <pg-selection-light></pg-selection-light>
           <pg-float-details></pg-float-details>
+          <div style="color: blue; padding: 5px; border: 1px solid blue;">
+            TableContainer: Renderizando FloatboxContainer
+          </div>
           <pg-floatbox-container></pg-floatbox-container>
         </pg-grid-container>
       </pg-scrollable-container>

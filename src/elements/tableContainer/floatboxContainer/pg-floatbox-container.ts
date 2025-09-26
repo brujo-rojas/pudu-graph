@@ -1,82 +1,189 @@
-import { LitElement, html, unsafeCSS } from "lit";
-import { customElement } from "lit/decorators.js";
-import cssStyles from "./pg-floatbox-container.css?inline";
+import { LitElement, html, css } from "lit";
+import { customElement, property } from "lit/decorators.js";
 import { connect } from "pwa-helpers";
-import { store, type RootState } from "@state/store";
-import type { PGItemData, PGConfig, PGRowData, PGUIState } from "@/types";
+import { store } from "@state/store";
+import type { RootState } from "@state/store";
+import type { PGConfig, PGRowData, PGItemData } from "@/types";
+import { PuduGraphFloatbox } from "../floatbox/pg-floatbox";
 
-import "../floatbox/pg-floatbox";
+// Verificar que el store se importa correctamente
 
 @customElement("pg-floatbox-container")
 export class PuduGraphFloatboxContainer extends connect(store)(LitElement) {
-  static styles = [unsafeCSS(cssStyles)];
+  constructor() {
+    super();
+  }
+  static styles = css`
+    :host {
+      display: block;
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+  `;
 
-  private config: PGConfig | null = null;
-  private data: PGRowData[] = [];
-  private uiState: PGUIState = {};
-  private itemsWithLevels: Array<{
-    row: PGRowData;
-    index: number;
-    items: (PGItemData & { overlapLevel: number })[];
-  }> = [];
+  @property({ type: Object })
+  config?: PGConfig;
+
+  @property({ type: Array })
+  data: PGRowData[] = [];
+
+  @property({ type: Object })
+  uiState?: any;
+
+  private visibleRange = { start: 0, end: 0 };
+  private containerElement?: HTMLElement;
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.containerElement = this;
+    this.setupEventListeners();
+    
+    // Forzar actualización del rango visible después de que el elemento esté en el DOM
+    setTimeout(() => {
+      this.updateVisibleRange();
+      this.requestUpdate();
+    }, 0);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.cleanupEventListeners();
+  }
 
   stateChanged(state: RootState): void {
+    
     this.config = state.config;
     this.data = state.data;
     this.uiState = state.uiState;
-    // Prepara los datos con niveles de solapamiento
-    const itemHeight = this.config?.options.itemHeight ?? 60;
-    const flexBoxHeight = this.config?.options.flexBoxHeight ?? 20;
-
-    const maxLevels = Math.floor(itemHeight / flexBoxHeight);
-    this.itemsWithLevels = this.data.map((row, index) => ({
-      row,
-      index,
-      items: this.assignOverlapLevels(row.rowData ?? [], maxLevels),
-    }));
+    
+    // Debug: verificar datos
+    if (this.data.length > 0) {
+    }
+    
+    this.updateVisibleRange();
     this.requestUpdate();
   }
 
-  /**
-   * Asigna niveles de solapamiento a los items de un row (0, 1, 2, ...)
-   */
-  private assignOverlapLevels(
-    items: PGItemData[],
-    maxLevels = 5
-  ): (PGItemData & { overlapLevel: number })[] {
-    const sorted = [...items].sort((a, b) => a.startUnix - b.startUnix);
-    const levelEnds: number[] = Array(maxLevels).fill(-Infinity);
-    return sorted.map((item) => {
-      let level = 0;
-      for (; level < maxLevels - 1; level++) {
-        if (item.startUnix >= levelEnds[level]) break;
+  private setupEventListeners(): void {
+    if (this.containerElement) {
+      this.containerElement.addEventListener('scroll', this.handleScroll.bind(this));
+      this.containerElement.addEventListener('item-updated', this.handleItemUpdated.bind(this));
+      window.addEventListener('resize', this.handleResize.bind(this));
+    }
+  }
+
+  private cleanupEventListeners(): void {
+    if (this.containerElement) {
+      this.containerElement.removeEventListener('scroll', this.handleScroll.bind(this));
+      this.containerElement.removeEventListener('item-updated', this.handleItemUpdated.bind(this));
+      window.removeEventListener('resize', this.handleResize.bind(this));
+    }
+  }
+
+  private handleScroll(): void {
+    this.updateVisibleRange();
+    this.requestUpdate();
+  }
+
+  private handleResize(): void {
+    this.updateVisibleRange();
+    this.requestUpdate();
+  }
+
+  private handleItemUpdated(event: Event): void {
+    const customEvent = event as CustomEvent;
+    const { item, rowIndex } = customEvent.detail;
+    
+    if (this.data && this.data[rowIndex] && this.data[rowIndex].rowData) {
+      // Encontrar el item en los datos y actualizarlo
+      const rowData = this.data[rowIndex].rowData;
+      
+      // Buscar por múltiples criterios para encontrar el item original
+      const itemIndex = rowData.findIndex(existingItem => {
+        // Si tienen el mismo foo (identificador único)
+        if (existingItem.foo === item.foo) return true;
+        
+        // Si tienen el mismo color y startUnix similar (para items sin foo)
+        if (existingItem.color === item.color && 
+            Math.abs((existingItem.startUnix || 0) - (item.startUnix || 0)) < 3600) { // 1 hora de diferencia
+          return true;
+        }
+        
+        return false;
+      });
+      
+      if (itemIndex !== -1) {
+        // Actualizar el item en el array
+        const oldItem = this.data[rowIndex].rowData[itemIndex];
+        this.data[rowIndex].rowData[itemIndex] = { ...item };
+        
+        // Forzar re-render
+        this.requestUpdate();
+        
+        // Opcional: actualizar store global si es necesario
+        // store.dispatch(updateItemData({ rowIndex, itemIndex, item }));
+      } else {
+        console.warn('FloatboxContainer: No se pudo encontrar el item para actualizar');
       }
-      levelEnds[level] = item.endUnix;
-      return { ...item, overlapLevel: level };
+    }
+  }
+
+
+  private updateVisibleRange(): void {
+    // Simplificar temporalmente - renderizar todas las filas
+    this.visibleRange = { start: 0, end: this.data.length };
+  }
+
+
+  private renderRow(row: PGRowData, rowIndex: number) {
+    
+    if (!row.rowData?.length) {
+      return html`<div style="color: orange; padding: 5px;">Fila ${rowIndex}: Sin datos</div>`;
+    }
+    
+    
+    // Simplificar temporalmente - renderizar elementos básicos
+    return row.rowData.map((item, itemIndex) => {
+      const overlapLevel = itemIndex % 3; // Solapamiento simple
+      
+      
+      return html`
+        <pg-floatbox
+          .itemData="${item}"
+          .rowData="${row}"
+          .rowIndex=${rowIndex}
+          .overlapLevel=${overlapLevel}
+        ></pg-floatbox>
+      `;
     });
   }
 
   render() {
+    
+    // Siempre renderizar algo para verificar que el componente existe
+    if (!this.config || !this.data.length) {
+      return html`
+        <div style="color: red; padding: 10px; border: 1px solid red;">
+          FloatboxContainer: No hay datos para renderizar
+          <br>Config: ${!!this.config}
+          <br>Data length: ${this.data.length}
+        </div>
+      `;
+    }
+    
+    // Renderizar todas las filas temporalmente para debug
+    
     return html`
       <slot></slot>
-      ${this.itemsWithLevels.map(({ row, index, items }) =>
-        items.map(
-          (item: PGItemData & { overlapLevel: number }) => html`
-            <pg-floatbox
-              .itemData="${item}"
-              .rowData="${row}"
-              .rowIndex=${index}
-              .overlapLevel=${item.overlapLevel}
-            ></pg-floatbox>
-          `
-        )
-      )}
+      <div style="color: green; padding: 5px; border: 1px solid green;">
+        FloatboxContainer: Renderizando ${this.data.length} filas
+      </div>
+      ${this.data.map((row, index) => {
+        return this.renderRow(row, index);
+      })}
     `;
   }
 }
 
-declare global {
-  interface HTMLElementTagNameMap {
-    "pg-floatbox-container": PuduGraphFloatboxContainer;
-  }
-}
+// Log para verificar que el componente se exporta correctamente

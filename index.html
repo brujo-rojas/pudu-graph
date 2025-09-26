@@ -20,6 +20,12 @@
           itemHeight: 60, // Altura de los items en la barra lateral
           flexBoxHeight: 20, // Altura del contenedor flexible de la barra
           dayWidth: 30, // Ancho de cada día en la línea de tiempo
+          
+          // Opciones de optimización
+          floatboxHeight: 10, // Altura del floatbox
+          maxOverlapLevels: 5, // Máximo número de niveles de solapamiento
+          enableVirtualization: true, // Habilitar virtualización
+          cacheSize: 1000, // Tamaño del cache
 
           header: {},
           sidebar: {
@@ -62,24 +68,28 @@
                 startUnix: Date.parse("2025-05-25T00:00:00Z") / 1000,
                 endUnix: Date.parse("2025-05-27T10:00:00Z") / 1000,
                 color: "#3498db",
+                foo: "Elemento 1"
               },
 
               {
                 startUnix: Date.parse("2025-05-28T00:00:00Z") / 1000,
                 endUnix: Date.parse("2025-05-30T10:00:00Z") / 1000,
                 color: "red",
+                foo: "Elemento 2"
               },
 
               {
                 startUnix: Date.parse("2025-05-25T00:00:00Z") / 1000,
                 endUnix: Date.parse("2025-05-31T10:00:00Z") / 1000,
                 color: "green",
+                foo: "Elemento 3"
               },
 
               {
                 startUnix: Date.parse("2025-05-25T00:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-01T01:00:00Z") / 1000,
                 color: "yellow",
+                foo: "Elemento 4"
               },
 
 
@@ -88,31 +98,37 @@
                 startUnix: Date.parse("2025-06-03T00:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-04T00:00:00Z") / 1000,
                 color: "blue",
+                foo: "Elemento 5"
               },
               {
                 startUnix: Date.parse("2025-06-03T02:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-04T02:00:00Z") / 1000,
                 color: "red",
+                foo: "Elemento 6"
               },
               {
                 startUnix: Date.parse("2025-06-03T04:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-04T04:00:00Z") / 1000,
                 color: "green",
+                foo: "Elemento 7"
               },
               {
                 startUnix: Date.parse("2025-06-03T06:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-04T06:00:00Z") / 1000,
                 color: "yellow",
+                foo: "Elemento 8"
               },
               {
                 startUnix: Date.parse("2025-06-03T08:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-04T08:00:00Z") / 1000,
                 color: "blue",
+                foo: "Elemento 9"
               },
               {
                 startUnix: Date.parse("2025-06-03T10:00:00Z") / 1000,
                 endUnix: Date.parse("2025-06-04T10:00:00Z") / 1000,
                 color: "red",
+                foo: "Elemento 10"
               },
 
 
